@@ -143,8 +143,8 @@ const AdminDashboard = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8000/api/v1/admin/requests/${selectedRequest.id}/approve`, {
-        method: 'POST',
+      const response = await fetch(`http://localhost:8000/api/v1/admin/requests/${selectedRequest.id}/approve-with-assignment`, {
+        method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -152,31 +152,26 @@ const AdminDashboard = () => {
         body: JSON.stringify({
           vehicle_id: parseInt(selectedVehicle),
           driver_id: parseInt(selectedDriver),
-          safety_override: safetyOverride
+          estimated_departure: "08:00:00",
+          estimated_arrival: "09:00:00",
+          notes: "Approved via admin dashboard"
         })
       });
 
-      const data = await response.json();
-
-      if (data.success) {
+      if (response.ok) {
+        const data = await response.json();
+        alert(data.message || 'Request approved and assigned successfully');
         setShowApprovalModal(false);
         setSafetyOverride(false); // Reset override flag
         fetchAdminData(); // Refresh data
-      } else if (data.requires_override && !safetyOverride) {
-        // Show safety warning and allow override (only if not already overriding)
-        const confirmOverride = window.confirm(
-          `Safety issues detected:\n${data.safety_validation.overall_issues.join('\n')}\n\nDo you want to override these safety warnings?`
-        );
-
-        if (confirmOverride) {
-          setSafetyOverride(true);
-          // Retry with override - use setTimeout to ensure state is updated
-          setTimeout(() => {
-            approveRequestWithAssignment();
-          }, 100);
-        }
       } else {
-        alert(data.message || 'Approval failed');
+        const errorData = await response.json();
+        if (Array.isArray(errorData.detail)) {
+          const errorMessages = errorData.detail.map(err => err.msg || err.message || 'Validation error').join(', ');
+          alert(errorMessages);
+        } else {
+          alert(errorData.detail || 'Approval failed');
+        }
         setSafetyOverride(false); // Reset override flag on failure
       }
     } catch (error) {
@@ -255,7 +250,7 @@ const AdminDashboard = () => {
             >
               Transport Requests
             </button>
-            {user?.role === 'admin' && (
+            {(user?.role === 'admin' || user?.role === 'super_admin') && (
               <button
                 onClick={() => setActiveTab('users')}
                 className={`py-4 px-1 border-b-2 font-medium text-sm ${
@@ -505,7 +500,7 @@ const AdminDashboard = () => {
         )}
 
         {/* User Management Tab - Admin Only */}
-        {activeTab === 'users' && user?.role === 'admin' && (
+        {activeTab === 'users' && (user?.role === 'admin' || user?.role === 'super_admin') && (
           <UserManagement />
         )}
 

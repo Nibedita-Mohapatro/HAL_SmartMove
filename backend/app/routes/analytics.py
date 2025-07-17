@@ -17,6 +17,124 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/analytics", tags=["Analytics"])
 
 
+@router.get("/dashboard")
+async def get_analytics_dashboard(
+    admin_user: User = Depends(get_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get comprehensive analytics dashboard data
+    """
+    today = date.today()
+    week_ago = today - timedelta(days=7)
+    month_ago = today - timedelta(days=30)
+
+    # Today's statistics
+    today_requests = db.query(TransportRequest).filter(
+        func.date(TransportRequest.created_at) == today
+    ).count()
+
+    today_approved = db.query(TransportRequest).filter(
+        and_(
+            func.date(TransportRequest.created_at) == today,
+            TransportRequest.status == RequestStatus.APPROVED
+        )
+    ).count()
+
+    today_completed = db.query(TransportRequest).filter(
+        and_(
+            func.date(TransportRequest.request_date) == today,
+            TransportRequest.status == RequestStatus.COMPLETED
+        )
+    ).count()
+
+    # Weekly trends
+    weekly_requests = []
+    for i in range(7):
+        day = week_ago + timedelta(days=i)
+        count = db.query(TransportRequest).filter(
+            func.date(TransportRequest.created_at) == day
+        ).count()
+        weekly_requests.append({
+            "date": day.isoformat(),
+            "requests": count
+        })
+
+    # Vehicle utilization
+    active_vehicles = db.query(Vehicle).filter(Vehicle.is_active == True).count()
+    vehicles_in_use = db.query(VehicleAssignment).join(TransportRequest).filter(
+        and_(
+            TransportRequest.request_date == today,
+            VehicleAssignment.status.in_([AssignmentStatus.ASSIGNED, AssignmentStatus.IN_PROGRESS])
+        )
+    ).count()
+
+    # Driver availability
+    total_drivers = db.query(Driver).filter(Driver.is_active == True).count()
+    available_drivers = db.query(Driver).filter(
+        and_(Driver.is_active == True, Driver.is_available == True)
+    ).count()
+
+    # Popular routes this month
+    popular_routes = db.query(
+        TransportRequest.origin,
+        TransportRequest.destination,
+        func.count(TransportRequest.id).label('count')
+    ).filter(
+        TransportRequest.created_at >= month_ago
+    ).group_by(
+        TransportRequest.origin, TransportRequest.destination
+    ).order_by(desc('count')).limit(5).all()
+
+    routes_data = [
+        {
+            "route": f"{route.origin} to {route.destination}",
+            "count": route.count
+        }
+        for route in popular_routes
+    ]
+
+    # Performance metrics
+    total_requests_month = db.query(TransportRequest).filter(
+        TransportRequest.created_at >= month_ago
+    ).count()
+
+    approved_requests_month = db.query(TransportRequest).filter(
+        and_(
+            TransportRequest.created_at >= month_ago,
+            TransportRequest.status == RequestStatus.APPROVED
+        )
+    ).count()
+
+    approval_rate = (approved_requests_month / total_requests_month * 100) if total_requests_month > 0 else 0
+
+    return {
+        "today": {
+            "total_requests": today_requests,
+            "approved_requests": today_approved,
+            "completed_trips": today_completed
+        },
+        "resources": {
+            "active_vehicles": active_vehicles,
+            "vehicles_in_use": vehicles_in_use,
+            "total_drivers": total_drivers,
+            "available_drivers": available_drivers,
+            "vehicle_utilization": round((vehicles_in_use / active_vehicles * 100) if active_vehicles > 0 else 0, 1),
+            "driver_utilization": round(((total_drivers - available_drivers) / total_drivers * 100) if total_drivers > 0 else 0, 1)
+        },
+        "trends": {
+            "weekly_requests": weekly_requests,
+            "popular_routes": routes_data
+        },
+        "performance": {
+            "monthly_requests": total_requests_month,
+            "monthly_approved": approved_requests_month,
+            "approval_rate": round(approval_rate, 1)
+        },
+        "generated_at": datetime.utcnow().isoformat()
+    }
+
+
 @router.get("/demand-forecast")
 async def get_demand_forecast(
     days: int = Query(7, ge=1, le=30),

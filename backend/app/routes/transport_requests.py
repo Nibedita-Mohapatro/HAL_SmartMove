@@ -31,7 +31,7 @@ async def create_request(
     """
     Create new transport request
     """
-    # Check if user has pending requests for the same date/time
+    # Check if user has pending requests for the exact same date/time (only prevent exact duplicates)
     existing_request = db.query(TransportRequest).filter(
         and_(
             TransportRequest.user_id == current_user.id,
@@ -40,12 +40,35 @@ async def create_request(
             TransportRequest.status.in_([RequestStatus.PENDING, RequestStatus.APPROVED])
         )
     ).first()
-    
+
     if existing_request:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="You already have a request for this date and time"
+            detail="You already have a request for this exact date and time. Please choose a different time."
         )
+
+    # Check for reasonable time gaps (prevent requests within 30 minutes of each other)
+    from datetime import datetime, timedelta
+    request_datetime = datetime.combine(request_data.request_date, request_data.request_time)
+
+    # Check for nearby requests (within 30 minutes)
+    nearby_requests = db.query(TransportRequest).filter(
+        and_(
+            TransportRequest.user_id == current_user.id,
+            TransportRequest.request_date == request_data.request_date,
+            TransportRequest.status.in_([RequestStatus.PENDING, RequestStatus.APPROVED])
+        )
+    ).all()
+
+    for nearby_req in nearby_requests:
+        nearby_datetime = datetime.combine(nearby_req.request_date, nearby_req.request_time)
+        time_diff = abs((request_datetime - nearby_datetime).total_seconds() / 60)  # minutes
+
+        if time_diff < 30:  # Less than 30 minutes apart
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"You have another request at {nearby_req.request_time}. Please ensure at least 30 minutes gap between requests."
+            )
     
     # Create new request
     db_request = TransportRequest(

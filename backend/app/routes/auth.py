@@ -140,18 +140,68 @@ async def change_password(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Incorrect current password"
         )
-    
+
     # Verify new password confirmation
     if password_data.new_password != password_data.confirm_password:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="New passwords do not match"
         )
-    
+
     # Update password
     current_user.password_hash = get_password_hash(password_data.new_password)
     db.commit()
-    
+
     logger.info(f"User {current_user.employee_id} changed password")
-    
+
     return {"message": "Password changed successfully"}
+
+
+@router.get("/verify-token")
+async def verify_token_endpoint(current_user: User = Depends(get_current_active_user)):
+    """
+    Verify if current token is valid and get user info
+    """
+    return {
+        "valid": True,
+        "user": current_user.to_dict(),
+        "message": "Token is valid"
+    }
+
+
+@router.post("/refresh-access-token", response_model=TokenRefreshResponse)
+async def refresh_access_token_endpoint(
+    refresh_data: RefreshTokenRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Refresh access token using refresh token (enhanced version)
+    """
+    payload = verify_token(refresh_data.refresh_token, "refresh")
+    if payload is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired refresh token"
+        )
+
+    employee_id = payload.get("sub")
+    user = db.query(User).filter(User.employee_id == employee_id).first()
+
+    if not user or not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found or inactive"
+        )
+
+    # Create new access token with extended expiration
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.employee_id}, expires_delta=access_token_expires
+    )
+
+    logger.info(f"Access token refreshed for user {user.employee_id}")
+
+    return TokenRefreshResponse(
+        access_token=access_token,
+        expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
+    )

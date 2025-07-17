@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import RequestDetailsModal from './RequestDetailsModal';
 import BulkActionToolbar from './BulkActionToolbar';
+import AssignmentModal from './AssignmentModal';
 
 const RequestManagement = () => {
   const [requests, setRequests] = useState([]);
@@ -14,6 +15,7 @@ const RequestManagement = () => {
   });
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showAssignmentModal, setShowAssignmentModal] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -91,14 +93,58 @@ const RequestManagement = () => {
       });
 
       if (response.ok) {
+        const result = await response.json();
+        alert(result.message || `Request ${action}d successfully`);
         fetchRequests();
       } else {
         const errorData = await response.json();
-        alert(errorData.detail || `Failed to ${action} request`);
+        // Handle FastAPI validation errors
+        if (Array.isArray(errorData.detail)) {
+          const errorMessages = errorData.detail.map(err => err.msg || err.message || 'Validation error').join(', ');
+          alert(errorMessages);
+        } else {
+          alert(errorData.detail || `Failed to ${action} request`);
+        }
       }
     } catch (error) {
       console.error(`Error ${action}ing request:`, error);
-      alert(`Error ${action}ing request`);
+      alert(`Network error while ${action}ing request`);
+    }
+  };
+
+  const handleAssignRequest = async (requestId, assignmentData) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:8000/api/v1/admin/requests/${requestId}/approve-with-assignment`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          vehicle_id: assignmentData.vehicle_id,
+          driver_id: assignmentData.driver_id,
+          estimated_departure: "08:00:00",
+          estimated_arrival: "09:00:00",
+          notes: assignmentData.notes || "Assigned via request management"
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        return { success: true, message: result.message || 'Request approved and assigned successfully' };
+      } else {
+        const errorData = await response.json();
+        if (Array.isArray(errorData.detail)) {
+          const errorMessages = errorData.detail.map(err => err.msg || err.message || 'Validation error').join(', ');
+          return { success: false, message: errorMessages };
+        } else {
+          return { success: false, message: errorData.detail || 'Failed to assign request' };
+        }
+      }
+    } catch (error) {
+      console.error('Error assigning request:', error);
+      return { success: false, message: 'Network error while assigning request' };
     }
   };
 
@@ -334,6 +380,15 @@ const RequestManagement = () => {
                             Approve
                           </button>
                           <button
+                            onClick={() => {
+                              setSelectedRequest(request);
+                              setShowAssignmentModal(true);
+                            }}
+                            className="text-blue-600 hover:text-blue-900"
+                          >
+                            Assign
+                          </button>
+                          <button
                             onClick={() => handleRequestAction(request.id, 'reject')}
                             className="text-red-600 hover:text-red-900"
                           >
@@ -365,6 +420,19 @@ const RequestManagement = () => {
             setSelectedRequest(null);
           }}
           onAction={handleRequestAction}
+          onRefresh={fetchRequests}
+        />
+      )}
+
+      {/* Assignment Modal */}
+      {showAssignmentModal && selectedRequest && (
+        <AssignmentModal
+          request={selectedRequest}
+          onClose={() => {
+            setShowAssignmentModal(false);
+            setSelectedRequest(null);
+          }}
+          onAssign={handleAssignRequest}
           onRefresh={fetchRequests}
         />
       )}

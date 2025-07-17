@@ -51,17 +51,13 @@ async def get_vehicles(
     limit: int = Query(20, ge=1, le=100),
     vehicle_type: Optional[VehicleType] = None,
     is_active: Optional[bool] = None,
-    current_user: User = Depends(get_current_active_user),
+    admin_user: User = Depends(get_admin_user),
     db: Session = Depends(get_db)
 ):
     """
-    Get all vehicles (admin) or active vehicles (employee)
+    Get all vehicles (Admin only)
     """
     query = db.query(Vehicle)
-    
-    # Non-admin users can only see active vehicles
-    if current_user.role.value not in ['admin', 'super_admin']:
-        query = query.filter(Vehicle.is_active == True)
     
     # Apply filters
     if vehicle_type:
@@ -368,4 +364,106 @@ async def check_vehicle_availability(
             "time": query_data.time.strftime("%H:%M:%S"),
             "duration_minutes": query_data.duration
         }
+    }
+
+
+@router.put("/{vehicle_id}")
+async def update_vehicle(
+    vehicle_id: int,
+    vehicle_data: VehicleUpdate,
+    admin_user: User = Depends(get_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Update vehicle (Admin only)
+    """
+    vehicle = db.query(Vehicle).filter(Vehicle.id == vehicle_id).first()
+    if not vehicle:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Vehicle not found"
+        )
+
+    # Update only provided fields
+    update_data = vehicle_data.dict(exclude_unset=True)
+
+    for field, value in update_data.items():
+        setattr(vehicle, field, value)
+
+    db.commit()
+    db.refresh(vehicle)
+
+    logger.info(f"Admin {admin_user.employee_id} updated vehicle {vehicle.vehicle_number}")
+
+    return {
+        "message": "Vehicle updated successfully",
+        "vehicle": vehicle.to_dict()
+    }
+
+
+@router.delete("/{vehicle_id}")
+async def delete_vehicle(
+    vehicle_id: int,
+    admin_user: User = Depends(get_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Delete vehicle (Admin only)
+    """
+    vehicle = db.query(Vehicle).filter(Vehicle.id == vehicle_id).first()
+    if not vehicle:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Vehicle not found"
+        )
+
+    # Check if vehicle is currently assigned
+    active_assignment = db.query(VehicleAssignment).filter(
+        and_(
+            VehicleAssignment.vehicle_id == vehicle_id,
+            VehicleAssignment.status.in_([AssignmentStatus.ASSIGNED, AssignmentStatus.IN_PROGRESS])
+        )
+    ).first()
+
+    if active_assignment:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot delete vehicle that is currently assigned"
+        )
+
+    # Soft delete by setting is_active to False
+    vehicle.is_active = False
+    db.commit()
+
+    logger.info(f"Admin {admin_user.employee_id} deleted vehicle {vehicle.vehicle_number}")
+
+    return {"message": "Vehicle deleted successfully"}
+
+
+@router.put("/{vehicle_id}/toggle-status")
+async def toggle_vehicle_status(
+    vehicle_id: int,
+    admin_user: User = Depends(get_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Toggle vehicle active status
+    """
+    vehicle = db.query(Vehicle).filter(Vehicle.id == vehicle_id).first()
+    if not vehicle:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Vehicle not found"
+        )
+
+    # Toggle the status
+    vehicle.is_active = not vehicle.is_active
+    db.commit()
+
+    status_text = "activated" if vehicle.is_active else "deactivated"
+    logger.info(f"Admin {admin_user.employee_id} {status_text} vehicle {vehicle.vehicle_number}")
+
+    return {
+        "message": f"Vehicle {status_text} successfully",
+        "is_active": vehicle.is_active
     }

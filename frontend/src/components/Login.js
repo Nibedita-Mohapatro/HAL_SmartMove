@@ -23,12 +23,18 @@ const Login = () => {
     setError('');
 
     try {
+      // Trim whitespace from form data
+      const trimmedData = {
+        employee_id: formData.employee_id.trim(),
+        password: formData.password.trim()
+      };
+
       const response = await fetch('http://localhost:8000/api/v1/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(trimmedData),
       });
 
       const data = await response.json();
@@ -40,7 +46,7 @@ const Login = () => {
         localStorage.setItem('user', JSON.stringify(data.user));
 
         // Redirect based on user role
-        if (data.user.role === 'admin') {
+        if (data.user.role === 'admin' || data.user.role === 'super_admin') {
           navigate('/admin');
         } else if (data.user.role === 'transport') {
           navigate('/transport');
@@ -162,11 +168,11 @@ const Login = () => {
               <div className="text-xs text-gray-600">• Approve requests • Assign vehicles/drivers • Safety override</div>
             </div>
             <div className="bg-white p-2 rounded border-l-4 border-green-500">
-              <strong>🚗 Transport (Driver):</strong> HAL002 / driver123 <span className="text-gray-500">or</span> HAL004 / transport123
+              <strong>🚗 Transport (Driver):</strong> HAL002 / transport123
               <div className="text-xs text-gray-600">• View assigned trips • Start/complete trips • GPS tracking</div>
             </div>
             <div className="bg-white p-2 rounded border-l-4 border-blue-500">
-              <strong>👤 Employee (Passenger):</strong> HAL003 / employee123 <span className="text-gray-500">or</span> HAL005 / emp123
+              <strong>👤 Employee:</strong> HAL003 / employee123
               <div className="text-xs text-gray-600">• Create requests • Track trips • View status</div>
             </div>
           </div>

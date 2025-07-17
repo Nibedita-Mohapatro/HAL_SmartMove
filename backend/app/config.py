@@ -5,7 +5,7 @@ import os
 
 class Settings(BaseSettings):
     # Database Configuration
-    DATABASE_URL: str = "mysql+pymysql://root:password@localhost:3306/hal_transport_system"
+    DATABASE_URL: str = "sqlite:///./hal_transport_system.db"
     DB_HOST: str = "localhost"
     DB_PORT: int = 3306
     DB_USER: str = "root"
@@ -15,8 +15,8 @@ class Settings(BaseSettings):
     # JWT Configuration
     SECRET_KEY: str = "your-super-secret-key-change-this-in-production"
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 480  # 8 hours for production use
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 30  # 30 days for refresh tokens
     
     # Redis Configuration
     REDIS_URL: str = "redis://localhost:6379/0"

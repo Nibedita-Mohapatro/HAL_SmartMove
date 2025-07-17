@@ -134,7 +134,7 @@ User=$APP_USER
 Group=$APP_USER
 WorkingDirectory=$BACKEND_DIR
 Environment=PATH=$BACKEND_DIR/venv/bin
-ExecStart=$BACKEND_DIR/venv/bin/gunicorn -w 4 -k uvicorn.workers.UvicornWorker -b 127.0.0.1:8000 demo_app:app
+ExecStart=$BACKEND_DIR/venv/bin/gunicorn -w 4 -k uvicorn.workers.UvicornWorker -b 127.0.0.1:8000 main:app
 ExecReload=/bin/kill -s HUP \$MAINPID
 Restart=always
 RestartSec=3

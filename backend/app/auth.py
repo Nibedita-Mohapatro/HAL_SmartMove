@@ -52,14 +52,30 @@ def create_refresh_token(data: dict) -> str:
 
 
 def verify_token(token: str, token_type: str = "access") -> Optional[dict]:
-    """Verify JWT token"""
+    """Verify JWT token with detailed error logging"""
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         if payload.get("type") != token_type:
+            logger.warning(f"Token type mismatch: expected {token_type}, got {payload.get('type')}")
             return None
+
+        # Check if token is about to expire (within 30 minutes)
+        exp = payload.get("exp")
+        if exp:
+            exp_datetime = datetime.fromtimestamp(exp)
+            time_until_expiry = exp_datetime - datetime.utcnow()
+            if time_until_expiry.total_seconds() < 1800:  # 30 minutes
+                logger.info(f"Token expires in {time_until_expiry.total_seconds()/60:.1f} minutes")
+
         return payload
+    except jwt.ExpiredSignatureError:
+        logger.warning("JWT token has expired")
+        return None
     except JWTError as e:
         logger.error(f"JWT verification error: {e}")
+        return None
+    except Exception as e:
+        logger.error(f"Token verification error: {e}")
         return None
 
 
@@ -79,36 +95,67 @@ def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db)
 ) -> User:
-    """Get current authenticated user"""
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    
+    """Get current authenticated user with enhanced error handling"""
+
     try:
         token = credentials.credentials
         payload = verify_token(token, "access")
+
         if payload is None:
-            raise credentials_exception
-        
+            # Check if token is expired specifically
+            try:
+                expired_payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM], options={"verify_exp": False})
+                if expired_payload.get("type") == "access":
+                    logger.warning(f"Expired token for user: {expired_payload.get('sub')}")
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="Token has expired. Please login again.",
+                        headers={"WWW-Authenticate": "Bearer"},
+                    )
+            except:
+                pass
+
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid authentication token",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
         employee_id: str = payload.get("sub")
         if employee_id is None:
-            raise credentials_exception
-            
-    except JWTError:
-        raise credentials_exception
-    
-    user = db.query(User).filter(User.employee_id == employee_id).first()
-    if user is None:
-        raise credentials_exception
-    
-    if not user.is_active:
+            logger.error("Token payload missing 'sub' field")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token format",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+    except HTTPException:
+        raise
+    except JWTError as e:
+        logger.error(f"JWT error in get_current_user: {e}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Inactive user"
+            detail="Token validation failed",
+            headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
+    user = db.query(User).filter(User.employee_id == employee_id).first()
+    if user is None:
+        logger.warning(f"User not found for employee_id: {employee_id}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    if not user.is_active:
+        logger.warning(f"Inactive user attempted access: {employee_id}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User account is inactive"
+        )
+
     return user
 
 

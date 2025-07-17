@@ -133,13 +133,11 @@ echo %BLUE%[INFO]%NC% Starting backend server...
 cd /d "%BACKEND_DIR%"
 call venv\Scripts\activate.bat
 
-REM Check which entry point to use
+REM Start the main application
 if exist "main.py" (
     start "Backend Server" cmd /k "uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
-) else if exist "demo_app.py" (
-    start "Backend Server" cmd /k "uvicorn demo_app:app --host 0.0.0.0 --port 8000 --reload"
 ) else (
-    echo %RED%[ERROR]%NC% No backend entry point found (main.py or demo_app.py)
+    echo %RED%[ERROR]%NC% Backend entry point main.py not found
     pause
     exit /b 1
 )

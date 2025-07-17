@@ -235,13 +235,11 @@ run_backend() {
     cd "$BACKEND_DIR"
     source venv/bin/activate
     
-    # Check if main.py exists, otherwise use demo_app.py
+    # Start the main application
     if [ -f "main.py" ]; then
         uvicorn main:app --host 0.0.0.0 --port 8000 --reload > "$LOG_DIR/backend.log" 2>&1 &
-    elif [ -f "demo_app.py" ]; then
-        uvicorn demo_app:app --host 0.0.0.0 --port 8000 --reload > "$LOG_DIR/backend.log" 2>&1 &
     else
-        print_error "No backend entry point found (main.py or demo_app.py)"
+        print_error "Backend entry point main.py not found"
         exit 1
     fi
     

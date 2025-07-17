@@ -9,7 +9,7 @@ from contextlib import asynccontextmanager
 # Import application modules
 from app.config import settings
 from app.database import init_db, check_db_connection
-from app.routes import auth, transport_requests, admin, vehicles, drivers, analytics, ml
+from app.routes import auth, transport_requests, admin, vehicles, drivers, analytics, ml, gps, transport
 
 # Configure logging
 logging.basicConfig(
@@ -134,6 +134,8 @@ app.include_router(vehicles.router, prefix="/api/v1")
 app.include_router(drivers.router, prefix="/api/v1")
 app.include_router(analytics.router, prefix="/api/v1")
 app.include_router(ml.router, prefix="/api/v1")
+app.include_router(gps.router, prefix="/api/v1")
+app.include_router(transport.router, prefix="/api/v1")
 
 
 # Additional middleware for request logging

@@ -62,23 +62,23 @@ class DriverUpdate(BaseModel):
         return v
 
 
+class DriverAvailabilityUpdate(BaseModel):
+    is_available: bool
+
+
 @router.get("/")
 async def get_drivers(
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
     is_active: Optional[bool] = None,
     is_available: Optional[bool] = None,
-    current_user: User = Depends(get_current_active_user),
+    admin_user: User = Depends(get_admin_user),
     db: Session = Depends(get_db)
 ):
     """
-    Get all drivers (admin) or active/available drivers (employee)
+    Get all drivers (Admin only)
     """
     query = db.query(Driver)
-    
-    # Non-admin users can only see active drivers
-    if current_user.role.value not in ['admin', 'super_admin']:
-        query = query.filter(Driver.is_active == True)
     
     # Apply filters
     if is_active is not None:
@@ -194,6 +194,7 @@ async def create_driver(
     
     return {
         "message": "Driver created successfully",
+        "id": driver.id,
         "driver": driver.to_dict()
     }
 
@@ -386,4 +387,103 @@ async def get_available_drivers(
     return {
         "available_drivers": driver_responses,
         "count": len(driver_responses)
+    }
+
+
+@router.put("/{driver_id}/availability")
+async def update_driver_availability(
+    driver_id: int,
+    availability_data: DriverAvailabilityUpdate,
+    admin_user: User = Depends(get_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Update driver availability status (Admin only)
+    """
+    driver = db.query(Driver).filter(Driver.id == driver_id).first()
+    if not driver:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Driver not found"
+        )
+
+    # Update availability
+    driver.is_available = availability_data.is_available
+
+    db.commit()
+    db.refresh(driver)
+
+    logger.info(f"Admin {admin_user.employee_id} updated availability for driver {driver.employee_id} to {availability_data.is_available}")
+
+    return {
+        "message": "Driver availability updated successfully",
+        "driver": driver.to_dict()
+    }
+
+
+@router.delete("/{driver_id}")
+async def delete_driver(
+    driver_id: int,
+    admin_user: User = Depends(get_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Delete driver (Admin only)
+    """
+    driver = db.query(Driver).filter(Driver.id == driver_id).first()
+    if not driver:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Driver not found"
+        )
+
+    # Check if driver is currently assigned
+    active_assignment = db.query(VehicleAssignment).filter(
+        and_(
+            VehicleAssignment.driver_id == driver_id,
+            VehicleAssignment.status.in_([AssignmentStatus.ASSIGNED, AssignmentStatus.IN_PROGRESS])
+        )
+    ).first()
+
+    if active_assignment:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot delete driver that is currently assigned"
+        )
+
+    # Soft delete by setting is_active to False
+    driver.is_active = False
+    db.commit()
+
+    logger.info(f"Admin {admin_user.employee_id} deleted driver {driver.employee_id}")
+
+    return {"message": "Driver deleted successfully"}
+
+
+@router.put("/{driver_id}/toggle-status")
+async def toggle_driver_status(
+    driver_id: int,
+    admin_user: User = Depends(get_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Toggle driver active status
+    """
+    driver = db.query(Driver).filter(Driver.id == driver_id).first()
+    if not driver:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Driver not found"
+        )
+
+    # Toggle the status
+    driver.is_active = not driver.is_active
+    db.commit()
+
+    status_text = "activated" if driver.is_active else "deactivated"
+    logger.info(f"Admin {admin_user.employee_id} {status_text} driver {driver.employee_id}")
+
+    return {
+        "message": f"Driver {status_text} successfully",
+        "is_active": driver.is_active
     }

@@ -141,8 +141,8 @@ A comprehensive, enterprise-grade web-based transport management system designed
 ### Option 1: One-Click Launch (Recommended)
 ```bash
 # Clone the repository
-git clone https://github.com/Nibedita-Mohapatro/Hal_transport.git
-cd Hal_transport
+git clone https://github.com/sahlswla/transport_ms.git
+cd transport_ms
 
 # Make launcher executable and run
 chmod +x launcher.sh

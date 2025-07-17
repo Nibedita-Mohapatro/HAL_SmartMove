@@ -45,7 +45,7 @@ const VehicleManagement = () => {
   const handleCreateVehicle = async (vehicleData) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/v1/admin/vehicles/', {
+      const response = await fetch('http://localhost:8000/api/v1/vehicles/', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -73,7 +73,7 @@ const VehicleManagement = () => {
   const handleUpdateVehicle = async (vehicleId, vehicleData) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8000/api/v1/admin/vehicles/${vehicleId}`, {
+      const response = await fetch(`http://localhost:8000/api/v1/vehicles/${vehicleId}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -105,7 +105,7 @@ const VehicleManagement = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8000/api/v1/admin/vehicles/${vehicleId}`, {
+      const response = await fetch(`http://localhost:8000/api/v1/vehicles/${vehicleId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -129,7 +129,7 @@ const VehicleManagement = () => {
   const handleToggleStatus = async (vehicleId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8000/api/v1/admin/vehicles/${vehicleId}/toggle-status`, {
+      const response = await fetch(`http://localhost:8000/api/v1/vehicles/${vehicleId}/toggle-status`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -139,15 +139,22 @@ const VehicleManagement = () => {
 
       if (response.ok) {
         const result = await response.json();
-        setVehicles(vehicles.map(v => 
-          v.id === vehicleId 
-            ? { ...v, status: result.status }
+        setVehicles(vehicles.map(v =>
+          v.id === vehicleId
+            ? { ...v, is_active: result.is_active }
             : v
         ));
         setError('');
+        // Show success message
+        alert(result.message || 'Vehicle status updated successfully');
       } else {
         const errorData = await response.json();
-        setError(errorData.detail || 'Failed to update vehicle status');
+        if (Array.isArray(errorData.detail)) {
+          const errorMessages = errorData.detail.map(err => err.msg || err.message || 'Validation error').join(', ');
+          setError(errorMessages);
+        } else {
+          setError(errorData.detail || 'Failed to update vehicle status');
+        }
       }
     } catch (error) {
       console.error('Error updating vehicle status:', error);

@@ -195,7 +195,7 @@ mysql -u hal_user -p hal_transport < /var/backups/hal-transport/backup_file.sql
 sudo journalctl -u hal-transport -n 50
 
 # Check configuration
-sudo -u hal-transport /var/www/hal-transport/backend/venv/bin/python -c "from demo_app import app; print('Config OK')"
+sudo -u hal-transport /var/www/hal-transport/backend/venv/bin/python -c "from main import app; print('Config OK')"
 ```
 
 #### Database connection issues
@@ -234,7 +234,7 @@ query_cache_size = 256M
 ```bash
 # Increase worker processes
 # Edit /etc/systemd/system/hal-transport.service
-ExecStart=/var/www/hal-transport/backend/venv/bin/gunicorn -w 8 -k uvicorn.workers.UvicornWorker -b 127.0.0.1:8000 demo_app:app
+ExecStart=/var/www/hal-transport/backend/venv/bin/gunicorn -w 8 -k uvicorn.workers.UvicornWorker -b 127.0.0.1:8000 main:app
 ```
 
 ## 📞 Support

@@ -45,7 +45,7 @@ const DriverManagement = () => {
   const handleCreateDriver = async (driverData) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/v1/admin/drivers/', {
+      const response = await fetch('http://localhost:8000/api/v1/drivers/', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -73,7 +73,7 @@ const DriverManagement = () => {
   const handleUpdateDriver = async (driverId, driverData) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8000/api/v1/admin/drivers/${driverId}`, {
+      const response = await fetch(`http://localhost:8000/api/v1/drivers/${driverId}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -105,7 +105,7 @@ const DriverManagement = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8000/api/v1/admin/drivers/${driverId}`, {
+      const response = await fetch(`http://localhost:8000/api/v1/drivers/${driverId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -129,7 +129,7 @@ const DriverManagement = () => {
   const handleToggleStatus = async (driverId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8000/api/v1/admin/drivers/${driverId}/toggle-status`, {
+      const response = await fetch(`http://localhost:8000/api/v1/drivers/${driverId}/toggle-status`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -139,15 +139,22 @@ const DriverManagement = () => {
 
       if (response.ok) {
         const result = await response.json();
-        setDrivers(drivers.map(d => 
-          d.id === driverId 
-            ? { ...d, status: result.status }
+        setDrivers(drivers.map(d =>
+          d.id === driverId
+            ? { ...d, is_active: result.is_active }
             : d
         ));
         setError('');
+        // Show success message
+        alert(result.message || 'Driver status updated successfully');
       } else {
         const errorData = await response.json();
-        setError(errorData.detail || 'Failed to update driver status');
+        if (Array.isArray(errorData.detail)) {
+          const errorMessages = errorData.detail.map(err => err.msg || err.message || 'Validation error').join(', ');
+          setError(errorMessages);
+        } else {
+          setError(errorData.detail || 'Failed to update driver status');
+        }
       }
     } catch (error) {
       console.error('Error updating driver status:', error);

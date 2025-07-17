@@ -85,7 +85,7 @@ class GPSTracker:
         return tracking_data
     
     def simulate_trip_progress(self, trip_id: int):
-        """Simulate GPS movement for demo purposes"""
+        """Simulate GPS movement for testing purposes"""
         if trip_id not in self.active_trips:
             return None
             

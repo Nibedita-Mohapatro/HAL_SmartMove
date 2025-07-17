@@ -80,7 +80,7 @@ const UserManagement = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8000/api/v1/admin/users/${employeeId}`, {
+      const response = await fetch(`http://localhost:8000/api/v1/admin/users/by-employee-id/${employeeId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -93,7 +93,13 @@ const UserManagement = () => {
         setError('');
       } else {
         const errorData = await response.json();
-        setError(errorData.detail || 'Failed to delete user');
+        // Handle FastAPI validation errors
+        if (Array.isArray(errorData.detail)) {
+          const errorMessages = errorData.detail.map(err => err.msg || err.message || 'Validation error').join(', ');
+          setError(errorMessages);
+        } else {
+          setError(errorData.detail || 'Failed to delete user');
+        }
       }
     } catch (error) {
       console.error('Error deleting user:', error);
@@ -122,7 +128,13 @@ const UserManagement = () => {
         setError('');
       } else {
         const errorData = await response.json();
-        setError(errorData.detail || 'Failed to update user status');
+        // Handle FastAPI validation errors
+        if (Array.isArray(errorData.detail)) {
+          const errorMessages = errorData.detail.map(err => err.msg || err.message || 'Validation error').join(', ');
+          setError(errorMessages);
+        } else {
+          setError(errorData.detail || 'Failed to update user status');
+        }
       }
     } catch (error) {
       console.error('Error updating user status:', error);
