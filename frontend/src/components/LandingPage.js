@@ -13,7 +13,7 @@ const LandingPage = () => {
                 <h1 className="text-2xl font-bold text-hal-navy">HAL</h1>
               </div>
               <div className="ml-4">
-                <span className="text-hal-gray text-sm">Transport Management System</span>
+                <span className="text-hal-gray text-sm">SmartMove</span>
               </div>
             </div>
             <div className="flex items-center space-x-4">
@@ -35,12 +35,11 @@ const LandingPage = () => {
             <main className="mt-10 mx-auto max-w-7xl px-4 sm:mt-12 sm:px-6 md:mt-16 lg:mt-20 lg:px-8 xl:mt-28">
               <div className="sm:text-center lg:text-left">
                 <h1 className="text-4xl tracking-tight font-extrabold text-white sm:text-5xl md:text-6xl">
-                  <span className="block xl:inline">Smart Vehicle</span>{' '}
-                  <span className="block text-hal-orange xl:inline">Transport System</span>
+                  <span className="block xl:inline">HAL</span>{' '}
+                  <span className="block text-hal-orange xl:inline">SmartMove</span>
                 </h1>
                 <p className="mt-3 text-base text-gray-200 sm:mt-5 sm:text-lg sm:max-w-xl sm:mx-auto md:mt-5 md:text-xl lg:mx-0">
-                  Streamline your transportation needs with HAL's intelligent vehicle management system.
-                  Request vehicles, track status, and optimize routes with AI-powered insights.
+                  Hassle-Free Transport at Your Fingertips. From booking to tracking, manage your travel needs with speed, clarity, and control.
                 </p>
                 <div className="mt-5 sm:mt-8 sm:flex sm:justify-center lg:justify-start">
                   <div className="rounded-md shadow">
@@ -183,7 +182,7 @@ const LandingPage = () => {
       <footer className="bg-hal-navy">
         <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h3 className="text-2xl font-bold text-white">HAL Transport Management System</h3>
+            <h3 className="text-2xl font-bold text-white">HAL SmartMove</h3>
             <p className="mt-2 text-hal-gray">
               Hindustan Aeronautics Limited - Powering India's Aerospace Dreams
             </p>

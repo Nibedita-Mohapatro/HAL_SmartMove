@@ -35,7 +35,7 @@ const SimpleLandingPage = () => {
             marginBottom: '1rem',
             lineHeight: '1.1'
           }}>
-            Smart Vehicle Transport System
+            HAL SmartMove
           </h1>
           <h2 style={{ 
             fontSize: '1.5rem', 
@@ -51,8 +51,7 @@ const SimpleLandingPage = () => {
             margin: '0 auto 2rem auto',
             lineHeight: '1.6'
           }}>
-            Streamline your transportation needs with HAL's intelligent vehicle management system. 
-            Request vehicles, track status, and optimize routes with AI-powered insights.
+            Hassle-Free Transport at Your Fingertips. From booking to tracking, manage your travel needs with speed, clarity, and control.
           </p>
           <div style={{ marginTop: '2rem' }}>
             <Link
@@ -164,7 +163,7 @@ const SimpleLandingPage = () => {
       <footer style={{ background: '#1e3a8a', color: 'white', padding: '2rem 0', textAlign: 'center' }}>
         <div className="container">
           <h3 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
-            HAL Transport Management System
+            HAL SmartMove
           </h3>
           <p style={{ color: '#9ca3af' }}>
             Hindustan Aeronautics Limited - Powering India's Aerospace Dreams

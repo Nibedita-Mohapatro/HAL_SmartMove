@@ -231,10 +231,10 @@ const UserManagement = () => {
           <div className="text-sm text-gray-600">Active Users</div>
         </div>
         <div className="bg-white p-4 rounded-lg shadow">
-          <div className="text-2xl font-bold text-red-600">
-            {users.filter(u => u.role === 'admin').length}
+          <div className="text-2xl font-bold text-blue-600">
+            {users.filter(u => u.department).length}
           </div>
-          <div className="text-sm text-gray-600">🔧 Admins</div>
+          <div className="text-sm text-gray-600">📋 Departments</div>
         </div>
         <div className="bg-white p-4 rounded-lg shadow">
           <div className="text-2xl font-bold text-green-600">
@@ -244,27 +244,7 @@ const UserManagement = () => {
         </div>
       </div>
 
-      {/* Additional Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white p-4 rounded-lg shadow">
-          <div className="text-2xl font-bold text-blue-600">
-            {users.filter(u => u.role === 'employee').length}
-          </div>
-          <div className="text-sm text-gray-600">👤 Employees</div>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow">
-          <div className="text-2xl font-bold text-red-600">
-            {users.filter(u => !u.is_active).length}
-          </div>
-          <div className="text-sm text-gray-600">❌ Inactive</div>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow">
-          <div className="text-2xl font-bold text-purple-600">
-            {users.filter(u => u.permissions && u.permissions.includes('safety_override')).length}
-          </div>
-          <div className="text-sm text-gray-600">🛡️ Safety Override</div>
-        </div>
-      </div>
+
 
       {/* Create User Form Modal */}
       {showCreateForm && (

@@ -2,17 +2,15 @@ import React, { useState, useEffect } from 'react';
 
 const VehicleForm = ({ vehicle, onSubmit, onCancel }) => {
   const [formData, setFormData] = useState({
-    registration_number: '',
-    make: '',
+    vehicle_number: '',
+    vehicle_type: 'bus',
     model: '',
-    year: '',
-    type: 'sedan',
+    year_of_manufacture: '',
     capacity: '',
-    fuel_type: 'petrol',
-    status: 'available',
+    fuel_type: 'diesel',
     insurance_expiry: '',
-    last_maintenance: '',
-    next_maintenance: ''
+    fitness_certificate_expiry: '',
+    current_location: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -20,42 +18,31 @@ const VehicleForm = ({ vehicle, onSubmit, onCancel }) => {
   useEffect(() => {
     if (vehicle) {
       setFormData({
-        registration_number: vehicle.registration_number || '',
-        make: vehicle.make || '',
+        vehicle_number: vehicle.vehicle_number || '',
+        vehicle_type: vehicle.vehicle_type || 'bus',
         model: vehicle.model || '',
-        year: vehicle.year || '',
-        type: vehicle.type || 'sedan',
+        year_of_manufacture: vehicle.year_of_manufacture || '',
         capacity: vehicle.capacity || '',
-        fuel_type: vehicle.fuel_type || 'petrol',
-        status: vehicle.status || 'available',
+        fuel_type: vehicle.fuel_type || 'diesel',
         insurance_expiry: vehicle.insurance_expiry || '',
-        last_maintenance: vehicle.last_maintenance || '',
-        next_maintenance: vehicle.next_maintenance || ''
+        fitness_certificate_expiry: vehicle.fitness_certificate_expiry || '',
+        current_location: vehicle.current_location || ''
       });
     }
   }, [vehicle]);
 
   const vehicleTypes = [
-    { value: 'sedan', label: 'Sedan' },
-    { value: 'suv', label: 'SUV' },
     { value: 'bus', label: 'Bus' },
+    { value: 'car', label: 'Car' },
     { value: 'van', label: 'Van' },
-    { value: 'truck', label: 'Truck' }
+    { value: 'shuttle', label: 'Shuttle' }
   ];
 
   const fuelTypes = [
     { value: 'petrol', label: 'Petrol' },
     { value: 'diesel', label: 'Diesel' },
-    { value: 'cng', label: 'CNG' },
     { value: 'electric', label: 'Electric' },
     { value: 'hybrid', label: 'Hybrid' }
-  ];
-
-  const statusOptions = [
-    { value: 'available', label: 'Available' },
-    { value: 'in_use', label: 'In Use' },
-    { value: 'maintenance', label: 'Maintenance' },
-    { value: 'out_of_service', label: 'Out of Service' }
   ];
 
   const handleChange = (e) => {
@@ -71,19 +58,21 @@ const VehicleForm = ({ vehicle, onSubmit, onCancel }) => {
     setError('');
 
     // Basic validation
-    if (!formData.registration_number || !formData.make || !formData.model || !formData.year) {
+    if (!formData.vehicle_number || !formData.vehicle_type || !formData.capacity) {
       setError('Please fill in all required fields');
       setLoading(false);
       return;
     }
 
     // Year validation
-    const currentYear = new Date().getFullYear();
-    const year = parseInt(formData.year);
-    if (year < 1990 || year > currentYear + 1) {
-      setError('Please enter a valid year');
-      setLoading(false);
-      return;
+    if (formData.year_of_manufacture) {
+      const currentYear = new Date().getFullYear();
+      const year = parseInt(formData.year_of_manufacture);
+      if (year < 1990 || year > currentYear + 1) {
+        setError('Please enter a valid year');
+        setLoading(false);
+        return;
+      }
     }
 
     // Capacity validation
@@ -98,9 +87,17 @@ const VehicleForm = ({ vehicle, onSubmit, onCancel }) => {
       if (result.success) {
         // Form will be closed by parent component
       } else {
-        setError(result.message);
+        // Handle different types of error messages
+        if (typeof result.message === 'string') {
+          setError(result.message);
+        } else if (Array.isArray(result.message)) {
+          setError(result.message.join(', '));
+        } else {
+          setError('Failed to save vehicle');
+        }
       }
     } catch (error) {
+      console.error('Vehicle form error:', error);
       setError('An unexpected error occurred');
     } finally {
       setLoading(false);
@@ -129,50 +126,53 @@ const VehicleForm = ({ vehicle, onSubmit, onCancel }) => {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Registration Number */}
+          {/* Vehicle Number */}
           <div>
-            <label htmlFor="registration_number" className="block text-sm font-medium text-gray-700 mb-1">
-              Registration Number *
+            <label htmlFor="vehicle_number" className="block text-sm font-medium text-gray-700 mb-1">
+              Vehicle Number *
             </label>
             <input
               type="text"
-              name="registration_number"
-              id="registration_number"
+              name="vehicle_number"
+              id="vehicle_number"
               required
-              value={formData.registration_number}
+              value={formData.vehicle_number}
               onChange={handleChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-hal-blue focus:border-transparent"
               placeholder="e.g., KA01AB1234"
             />
           </div>
 
-          {/* Make */}
+          {/* Vehicle Type */}
           <div>
-            <label htmlFor="make" className="block text-sm font-medium text-gray-700 mb-1">
-              Make *
+            <label htmlFor="vehicle_type" className="block text-sm font-medium text-gray-700 mb-1">
+              Vehicle Type *
             </label>
-            <input
-              type="text"
-              name="make"
-              id="make"
+            <select
+              name="vehicle_type"
+              id="vehicle_type"
               required
-              value={formData.make}
+              value={formData.vehicle_type}
               onChange={handleChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-hal-blue focus:border-transparent"
-              placeholder="e.g., Toyota"
-            />
+            >
+              {vehicleTypes.map(type => (
+                <option key={type.value} value={type.value}>
+                  {type.label}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Model */}
           <div>
             <label htmlFor="model" className="block text-sm font-medium text-gray-700 mb-1">
-              Model *
+              Model
             </label>
             <input
               type="text"
               name="model"
               id="model"
-              required
               value={formData.model}
               onChange={handleChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-hal-blue focus:border-transparent"
@@ -180,52 +180,33 @@ const VehicleForm = ({ vehicle, onSubmit, onCancel }) => {
             />
           </div>
 
-          {/* Year */}
+          {/* Year of Manufacture */}
           <div>
-            <label htmlFor="year" className="block text-sm font-medium text-gray-700 mb-1">
-              Year *
+            <label htmlFor="year_of_manufacture" className="block text-sm font-medium text-gray-700 mb-1">
+              Year of Manufacture
             </label>
             <input
               type="number"
-              name="year"
-              id="year"
-              required
+              name="year_of_manufacture"
+              id="year_of_manufacture"
               min="1990"
               max={new Date().getFullYear() + 1}
-              value={formData.year}
+              value={formData.year_of_manufacture}
               onChange={handleChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-hal-blue focus:border-transparent"
             />
           </div>
 
-          {/* Type */}
-          <div>
-            <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-1">
-              Vehicle Type *
-            </label>
-            <select
-              name="type"
-              id="type"
-              required
-              value={formData.type}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-hal-blue focus:border-transparent"
-            >
-              {vehicleTypes.map(type => (
-                <option key={type.value} value={type.value}>{type.label}</option>
-              ))}
-            </select>
-          </div>
-
           {/* Capacity */}
           <div>
             <label htmlFor="capacity" className="block text-sm font-medium text-gray-700 mb-1">
-              Seating Capacity
+              Seating Capacity *
             </label>
             <input
               type="number"
               name="capacity"
               id="capacity"
+              required
               min="1"
               max="100"
               value={formData.capacity}
@@ -253,27 +234,25 @@ const VehicleForm = ({ vehicle, onSubmit, onCancel }) => {
             </select>
           </div>
 
-          {/* Status */}
+          {/* Current Location */}
           <div>
-            <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
-              Status
+            <label htmlFor="current_location" className="block text-sm font-medium text-gray-700 mb-1">
+              Current Location
             </label>
-            <select
-              name="status"
-              id="status"
-              value={formData.status}
+            <input
+              type="text"
+              name="current_location"
+              id="current_location"
+              value={formData.current_location}
               onChange={handleChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-hal-blue focus:border-transparent"
-            >
-              {statusOptions.map(status => (
-                <option key={status.value} value={status.value}>{status.label}</option>
-              ))}
-            </select>
+              placeholder="e.g., HAL Bangalore Office"
+            />
           </div>
         </div>
 
-        {/* Maintenance and Insurance Dates */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Insurance and Fitness Certificate Dates */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label htmlFor="insurance_expiry" className="block text-sm font-medium text-gray-700 mb-1">
               Insurance Expiry
@@ -289,28 +268,14 @@ const VehicleForm = ({ vehicle, onSubmit, onCancel }) => {
           </div>
 
           <div>
-            <label htmlFor="last_maintenance" className="block text-sm font-medium text-gray-700 mb-1">
-              Last Maintenance
+            <label htmlFor="fitness_certificate_expiry" className="block text-sm font-medium text-gray-700 mb-1">
+              Fitness Certificate Expiry
             </label>
             <input
               type="date"
-              name="last_maintenance"
-              id="last_maintenance"
-              value={formData.last_maintenance}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-hal-blue focus:border-transparent"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="next_maintenance" className="block text-sm font-medium text-gray-700 mb-1">
-              Next Maintenance
-            </label>
-            <input
-              type="date"
-              name="next_maintenance"
-              id="next_maintenance"
-              value={formData.next_maintenance}
+              name="fitness_certificate_expiry"
+              id="fitness_certificate_expiry"
+              value={formData.fitness_certificate_expiry}
               onChange={handleChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-hal-blue focus:border-transparent"
             />

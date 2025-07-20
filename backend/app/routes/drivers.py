@@ -317,16 +317,16 @@ async def delete_driver(
     db: Session = Depends(get_db)
 ):
     """
-    Deactivate driver (Admin only)
+    Delete driver (Admin only)
     """
     driver = db.query(Driver).filter(Driver.id == driver_id).first()
-    
+
     if not driver:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Driver not found"
         )
-    
+
     # Check if driver has active assignments
     active_assignments = db.query(VehicleAssignment).join(TransportRequest).filter(
         and_(
@@ -334,21 +334,33 @@ async def delete_driver(
             VehicleAssignment.status.in_([AssignmentStatus.ASSIGNED, AssignmentStatus.IN_PROGRESS])
         )
     ).count()
-    
+
     if active_assignments > 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot deactivate driver with active assignments"
+            detail="Cannot delete driver with active assignments. Please complete or reassign active trips first."
         )
-    
-    # Deactivate instead of delete
-    driver.is_active = False
-    driver.is_available = False
-    db.commit()
-    
-    logger.info(f"Admin {admin_user.employee_id} deactivated driver {driver.employee_id}")
-    
-    return {"message": "Driver deactivated successfully"}
+
+    # Check if driver has any historical assignments (for data integrity)
+    historical_assignments = db.query(VehicleAssignment).filter(
+        VehicleAssignment.driver_id == driver_id
+    ).count()
+
+    if historical_assignments > 0:
+        # Soft delete for drivers with historical data to preserve referential integrity
+        driver.is_active = False
+        driver.is_available = False
+        db.commit()
+
+        logger.info(f"Admin {admin_user.employee_id} soft-deleted driver {driver.employee_id} (has historical assignments)")
+        return {"message": "Driver deleted successfully", "type": "soft_delete"}
+    else:
+        # Hard delete for drivers with no historical data
+        db.delete(driver)
+        db.commit()
+
+        logger.info(f"Admin {admin_user.employee_id} hard-deleted driver {driver.employee_id} (no historical assignments)")
+        return {"message": "Driver deleted successfully", "type": "hard_delete"}
 
 
 @router.get("/available/now")
@@ -421,43 +433,7 @@ async def update_driver_availability(
     }
 
 
-@router.delete("/{driver_id}")
-async def delete_driver(
-    driver_id: int,
-    admin_user: User = Depends(get_admin_user),
-    db: Session = Depends(get_db)
-):
-    """
-    Delete driver (Admin only)
-    """
-    driver = db.query(Driver).filter(Driver.id == driver_id).first()
-    if not driver:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Driver not found"
-        )
 
-    # Check if driver is currently assigned
-    active_assignment = db.query(VehicleAssignment).filter(
-        and_(
-            VehicleAssignment.driver_id == driver_id,
-            VehicleAssignment.status.in_([AssignmentStatus.ASSIGNED, AssignmentStatus.IN_PROGRESS])
-        )
-    ).first()
-
-    if active_assignment:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot delete driver that is currently assigned"
-        )
-
-    # Soft delete by setting is_active to False
-    driver.is_active = False
-    db.commit()
-
-    logger.info(f"Admin {admin_user.employee_id} deleted driver {driver.employee_id}")
-
-    return {"message": "Driver deleted successfully"}
 
 
 @router.put("/{driver_id}/toggle-status")

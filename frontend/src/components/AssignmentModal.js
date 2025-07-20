@@ -23,35 +23,23 @@ const AssignmentModal = ({ request, onClose, onAssign, onRefresh }) => {
   const fetchAvailableResources = async () => {
     try {
       const token = localStorage.getItem('token');
-      
-      // Fetch available vehicles
-      const vehiclesResponse = await fetch('http://localhost:8000/api/v1/vehicles/', {
+
+      // Fetch assignment options for this specific request
+      const response = await fetch(`http://localhost:8000/api/v1/admin/requests/${request.id}/assignment-options`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       });
 
-      // Fetch available drivers
-      const driversResponse = await fetch('http://localhost:8000/api/v1/drivers/', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      if (response.ok) {
+        const data = await response.json();
 
-      if (vehiclesResponse.ok && driversResponse.ok) {
-        const vehiclesData = await vehiclesResponse.json();
-        const driversData = await driversResponse.json();
-        
-        const availableVehicles = vehiclesData.vehicles.filter(v => v.status === 'available');
-        const availableDrivers = driversData.drivers.filter(d => d.status === 'active');
-        
-        setVehicles(availableVehicles);
-        setDrivers(availableDrivers);
-        
+        setVehicles(data.available_vehicles || []);
+        setDrivers(data.available_drivers || []);
+
         // Generate suggestions
-        generateSuggestions(availableVehicles, availableDrivers);
+        generateSuggestions(data.available_vehicles || [], data.available_drivers || []);
       } else {
         setError('Failed to fetch available resources');
       }
@@ -129,12 +117,12 @@ const AssignmentModal = ({ request, onClose, onAssign, onRefresh }) => {
 
   const getVehicleInfo = (vehicleId) => {
     const vehicle = vehicles.find(v => v.id === parseInt(vehicleId));
-    return vehicle ? `${vehicle.registration_number} (${vehicle.make} ${vehicle.model})` : '';
+    return vehicle ? `${vehicle.vehicle_number} (${vehicle.vehicle_type} - ${vehicle.capacity} seats)` : '';
   };
 
   const getDriverInfo = (driverId) => {
     const driver = drivers.find(d => d.id === parseInt(driverId));
-    return driver ? `${driver.first_name} ${driver.last_name} (${driver.employee_id})` : '';
+    return driver ? `${driver.name} (${driver.employee_id})` : '';
   };
 
   const getSuggestionReason = (vehicle, driver) => {

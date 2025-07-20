@@ -20,13 +20,13 @@ black==23.11.0
 flake8==6.1.0
 isort==5.12.0
 
-# ML/AI dependencies
-scikit-learn==1.3.2
-pandas==2.1.3
-numpy==1.25.2
-matplotlib==3.8.2
-seaborn==0.13.0
-joblib==1.3.2
+# ML/AI dependencies - Updated for Python 3.13 compatibility
+scikit-learn>=1.4.0
+pandas>=2.1.3
+numpy>=1.25.2
+matplotlib>=3.8.2
+seaborn>=0.13.0
+joblib>=1.3.2
 
 # Optional: For advanced ML features
 # tensorflow==2.15.0

@@ -317,6 +317,7 @@ async def approve_request_with_assignment(
         vehicle_id=approval_data.vehicle_id,
         driver_id=approval_data.driver_id,
         assigned_by=admin_user.id,
+        assignment_date=request.request_date,
         estimated_departure=approval_data.estimated_departure,
         estimated_arrival=approval_data.estimated_arrival,
         notes=approval_data.notes
@@ -465,6 +466,70 @@ async def cancel_request_unified(
     return {"message": "Request cancelled successfully", "status": "cancelled"}
 
 
+@router.get("/requests/{request_id}")
+async def get_request_details(
+    request_id: int,
+    admin_user: User = Depends(get_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get detailed information about a specific transport request
+    """
+    request = db.query(TransportRequest).filter(TransportRequest.id == request_id).first()
+    if not request:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Request not found"
+        )
+
+    # Build request details
+    request_dict = request.to_dict()
+
+    # Add user information
+    if request.user:
+        request_dict['user'] = {
+            "id": request.user.id,
+            "name": request.user.full_name,
+            "employee_id": request.user.employee_id,
+            "department": request.user.department,
+            "phone": request.user.phone
+        }
+
+    if request.approver:
+        request_dict['approver'] = {
+            "id": request.approver.id,
+            "name": request.approver.full_name,
+            "employee_id": request.approver.employee_id
+        }
+
+    # Get vehicle assignment if exists
+    assignment = db.query(VehicleAssignment).filter(
+        VehicleAssignment.request_id == request.id
+    ).first()
+
+    if assignment:
+        request_dict['assignment'] = {
+            "id": assignment.id,
+            "vehicle": {
+                "id": assignment.vehicle.id,
+                "vehicle_number": assignment.vehicle.vehicle_number,
+                "vehicle_type": assignment.vehicle.vehicle_type.value,
+                "capacity": assignment.vehicle.capacity
+            } if assignment.vehicle else None,
+            "driver": {
+                "id": assignment.driver.id,
+                "name": f"{assignment.driver.first_name} {assignment.driver.last_name}",
+                "employee_id": assignment.driver.employee_id,
+                "phone": assignment.driver.phone
+            } if assignment.driver else None,
+            "status": assignment.status.value,
+            "assignment_date": assignment.assignment_date.isoformat() if assignment.assignment_date else None,
+            "estimated_departure": assignment.estimated_departure.isoformat() if assignment.estimated_departure else None,
+            "estimated_arrival": assignment.estimated_arrival.isoformat() if assignment.estimated_arrival else None,
+            "notes": assignment.notes
+        }
+
+    return request_dict
 
 
 @router.get("/requests/{request_id}/available-resources")
@@ -543,6 +608,19 @@ async def get_available_resources(
         "total_available_vehicles": len(available_vehicles),
         "total_available_drivers": len(available_drivers)
     }
+
+
+@router.get("/requests/{request_id}/assignment-options")
+async def get_assignment_options(
+    request_id: int,
+    admin_user: User = Depends(get_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get assignment options (vehicles and drivers) for a specific request
+    This is an alias for available-resources to match frontend expectations
+    """
+    return await get_available_resources(request_id, admin_user, db)
 
 
 # User Management Schemas

@@ -122,14 +122,35 @@ const RequestForm = () => {
       const data = await response.json();
 
       if (response.ok) {
-        navigate('/employee', { 
+        navigate('/employee', {
           state: { message: 'Transport request submitted successfully!' }
         });
       } else {
-        setError(data.detail || 'Failed to submit request');
+        // Handle different types of error messages
+        let errorMessage = 'Failed to submit request';
+
+        if (Array.isArray(data.detail)) {
+          // Handle validation errors
+          errorMessage = data.detail.map(err => {
+            if (typeof err === 'object' && err.msg) {
+              return err.msg;
+            } else if (typeof err === 'string') {
+              return err;
+            } else {
+              return 'Validation error';
+            }
+          }).join(', ');
+        } else if (typeof data.detail === 'string') {
+          errorMessage = data.detail;
+        } else if (data.message) {
+          errorMessage = data.message;
+        }
+
+        setError(errorMessage);
       }
     } catch (err) {
-      setError('Network error. Please try again.');
+      console.error('Transport request error:', err);
+      setError('Network error. Please check your connection and try again.');
     } finally {
       setLoading(false);
     }

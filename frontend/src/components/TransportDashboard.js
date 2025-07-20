@@ -5,6 +5,7 @@ import GPSTracker from './GPSTracker';
 const TransportDashboard = () => {
   const [user, setUser] = useState(null);
   const [assignedTrips, setAssignedTrips] = useState([]);
+  const [driverInfo, setDriverInfo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showGPSTracker, setShowGPSTracker] = useState(false);
@@ -21,7 +22,7 @@ const TransportDashboard = () => {
     }
 
     const parsedUser = JSON.parse(userData);
-    if (parsedUser.role !== 'transport') {
+    if (parsedUser.role.toLowerCase() !== 'transport') {
       navigate('/login');
       return;
     }
@@ -43,6 +44,7 @@ const TransportDashboard = () => {
       if (response.ok) {
         const data = await response.json();
         setAssignedTrips(data.assigned_trips || []);
+        setDriverInfo(data.driver || null);
       } else {
         setError('Failed to fetch assigned trips');
       }
@@ -138,7 +140,7 @@ const TransportDashboard = () => {
               </div>
               <div className="ml-4">
                 <h1 className="text-2xl font-bold text-gray-900">Transport Dashboard</h1>
-                <p className="text-sm text-gray-500">Welcome, {user?.first_name} {user?.last_name}</p>
+                <p className="text-sm text-gray-500">Welcome, {driverInfo?.name || `${user?.first_name} ${user?.last_name}`}</p>
               </div>
             </div>
             <button
@@ -166,18 +168,18 @@ const TransportDashboard = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <p className="text-sm font-medium text-gray-500">License Number</p>
-                <p className="text-sm text-gray-900">{user?.license_number || 'N/A'}</p>
+                <p className="text-sm text-gray-900">{driverInfo?.license_number || 'N/A'}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-500">Rating</p>
-                <p className="text-sm text-gray-900">{user?.rating || 'N/A'} ⭐</p>
+                <p className="text-sm font-medium text-gray-500">Experience</p>
+                <p className="text-sm text-gray-900">{driverInfo?.experience_years ? `${driverInfo.experience_years} years` : 'N/A'}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-500">Status</p>
                 <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                  user?.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                  driverInfo?.is_available ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                 }`}>
-                  {user?.status || 'Unknown'}
+                  {driverInfo?.is_available ? 'Available' : 'Unavailable'}
                 </span>
               </div>
             </div>

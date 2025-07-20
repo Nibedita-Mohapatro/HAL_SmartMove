@@ -62,7 +62,26 @@ const VehicleManagement = () => {
         return { success: true, message: 'Vehicle created successfully' };
       } else {
         const errorData = await response.json();
-        return { success: false, message: errorData.detail || 'Failed to create vehicle' };
+        let errorMessage = 'Failed to create vehicle';
+
+        if (Array.isArray(errorData.detail)) {
+          // Handle validation errors
+          errorMessage = errorData.detail.map(err => {
+            if (typeof err === 'object' && err.msg) {
+              return err.msg;
+            } else if (typeof err === 'string') {
+              return err;
+            } else {
+              return 'Validation error';
+            }
+          }).join(', ');
+        } else if (typeof errorData.detail === 'string') {
+          errorMessage = errorData.detail;
+        } else if (errorData.message) {
+          errorMessage = errorData.message;
+        }
+
+        return { success: false, message: errorMessage };
       }
     } catch (error) {
       console.error('Error creating vehicle:', error);
@@ -90,7 +109,26 @@ const VehicleManagement = () => {
         return { success: true, message: 'Vehicle updated successfully' };
       } else {
         const errorData = await response.json();
-        return { success: false, message: errorData.detail || 'Failed to update vehicle' };
+        let errorMessage = 'Failed to update vehicle';
+
+        if (Array.isArray(errorData.detail)) {
+          // Handle validation errors
+          errorMessage = errorData.detail.map(err => {
+            if (typeof err === 'object' && err.msg) {
+              return err.msg;
+            } else if (typeof err === 'string') {
+              return err;
+            } else {
+              return 'Validation error';
+            }
+          }).join(', ');
+        } else if (typeof errorData.detail === 'string') {
+          errorMessage = errorData.detail;
+        } else if (errorData.message) {
+          errorMessage = errorData.message;
+        }
+
+        return { success: false, message: errorMessage };
       }
     } catch (error) {
       console.error('Error updating vehicle:', error);
@@ -149,12 +187,26 @@ const VehicleManagement = () => {
         alert(result.message || 'Vehicle status updated successfully');
       } else {
         const errorData = await response.json();
+        let errorMessage = 'Failed to update vehicle status';
+
         if (Array.isArray(errorData.detail)) {
-          const errorMessages = errorData.detail.map(err => err.msg || err.message || 'Validation error').join(', ');
-          setError(errorMessages);
-        } else {
-          setError(errorData.detail || 'Failed to update vehicle status');
+          // Handle validation errors properly
+          errorMessage = errorData.detail.map(err => {
+            if (typeof err === 'object' && err.msg) {
+              return err.msg;
+            } else if (typeof err === 'string') {
+              return err;
+            } else {
+              return 'Validation error';
+            }
+          }).join(', ');
+        } else if (typeof errorData.detail === 'string') {
+          errorMessage = errorData.detail;
+        } else if (errorData.message) {
+          errorMessage = errorData.message;
         }
+
+        setError(errorMessage);
       }
     } catch (error) {
       console.error('Error updating vehicle status:', error);
@@ -163,12 +215,12 @@ const VehicleManagement = () => {
   };
 
   const filteredVehicles = vehicles.filter(vehicle => {
-    const matchesStatus = filters.status === 'all' || vehicle.status === filters.status;
-    const matchesType = filters.type === 'all' || vehicle.type === filters.type;
-    const matchesSearch = !filters.searchTerm || 
-      vehicle.registration_number.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
-      vehicle.model.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
-      vehicle.make.toLowerCase().includes(filters.searchTerm.toLowerCase());
+    const matchesStatus = filters.status === 'all' || vehicle.is_active === (filters.status === 'active');
+    const matchesType = filters.type === 'all' || vehicle.vehicle_type === filters.type;
+    const matchesSearch = !filters.searchTerm ||
+      (vehicle.vehicle_number && vehicle.vehicle_number.toLowerCase().includes(filters.searchTerm.toLowerCase())) ||
+      (vehicle.model && vehicle.model.toLowerCase().includes(filters.searchTerm.toLowerCase())) ||
+      (vehicle.current_location && vehicle.current_location.toLowerCase().includes(filters.searchTerm.toLowerCase()));
 
     return matchesStatus && matchesType && matchesSearch;
   });

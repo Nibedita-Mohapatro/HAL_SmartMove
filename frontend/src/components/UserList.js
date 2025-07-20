@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 
 const UserList = ({ users, onDelete, onToggleStatus, onResetPassword }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [roleFilter, setRoleFilter] = useState('all');
+
   const [statusFilter, setStatusFilter] = useState('all');
   const [showPasswordReset, setShowPasswordReset] = useState(null);
   const [newPassword, setNewPassword] = useState('');
@@ -16,12 +16,12 @@ const UserList = ({ users, onDelete, onToggleStatus, onResetPassword }) => {
       user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.department.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesRole = roleFilter === 'all' || user.role === roleFilter;
+
     const matchesStatus = statusFilter === 'all' || 
       (statusFilter === 'active' && user.is_active) ||
       (statusFilter === 'inactive' && !user.is_active);
 
-    return matchesSearch && matchesRole && matchesStatus;
+    return matchesSearch && matchesStatus;
   });
 
   const handlePasswordReset = async (employeeId) => {
@@ -40,18 +40,7 @@ const UserList = ({ users, onDelete, onToggleStatus, onResetPassword }) => {
     }
   };
 
-  const getRoleBadgeColor = (role) => {
-    switch (role) {
-      case 'admin':
-        return 'bg-red-100 text-red-800';
-      case 'transport':
-        return 'bg-green-100 text-green-800';
-      case 'employee':
-        return 'bg-blue-100 text-blue-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
+
 
   const getStatusBadgeColor = (isActive) => {
     return isActive 
@@ -75,19 +64,7 @@ const UserList = ({ users, onDelete, onToggleStatus, onResetPassword }) => {
             />
           </div>
 
-          {/* Role Filter */}
-          <div>
-            <select
-              value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-hal-blue focus:border-transparent"
-            >
-              <option value="all">All Roles</option>
-              <option value="admin">Admin</option>
-              <option value="transport">Transport (Driver)</option>
-              <option value="employee">Employee</option>
-            </select>
-          </div>
+
 
           {/* Status Filter */}
           <div>
@@ -118,9 +95,7 @@ const UserList = ({ users, onDelete, onToggleStatus, onResetPassword }) => {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Department
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Role
-              </th>
+
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Status
               </th>
@@ -132,7 +107,7 @@ const UserList = ({ users, onDelete, onToggleStatus, onResetPassword }) => {
           <tbody className="bg-white divide-y divide-gray-200">
             {filteredUsers.length === 0 ? (
               <tr>
-                <td colSpan="5" className="px-6 py-12 text-center">
+                <td colSpan="4" className="px-6 py-12 text-center">
                   <div className="text-gray-500">
                     {(users || []).length === 0 ? 'No users found' : 'No users match your search criteria'}
                   </div>
@@ -158,11 +133,7 @@ const UserList = ({ users, onDelete, onToggleStatus, onResetPassword }) => {
                   <div className="text-sm text-gray-500">{user.designation}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleBadgeColor(user.role)}`}>
-                    {(user.role === 'admin' || user.role === 'super_admin') ? '🔧 Admin' :
-                     user.role === 'transport' ? '🚗 Transport' :
-                     '👤 Employee'}
-                  </span>
+                  <span className="text-sm text-gray-900">{user.department}</span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeColor(user.is_active)}`}>

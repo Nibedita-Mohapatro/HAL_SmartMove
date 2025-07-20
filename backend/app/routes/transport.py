@@ -60,8 +60,8 @@ async def get_assigned_trips(
             "status": assignment.status.value,
             "estimated_departure": assignment.estimated_departure.isoformat() if assignment.estimated_departure else None,
             "estimated_arrival": assignment.estimated_arrival.isoformat() if assignment.estimated_arrival else None,
-            "actual_departure": assignment.actual_departure.isoformat() if assignment.actual_departure else None,
-            "actual_arrival": assignment.actual_arrival.isoformat() if assignment.actual_arrival else None,
+            "actual_departure": assignment.started_at.isoformat() if assignment.started_at else None,
+            "actual_arrival": assignment.completed_at.isoformat() if assignment.completed_at else None,
             "notes": assignment.notes
         }
         
@@ -104,6 +104,11 @@ async def get_assigned_trips(
             "id": driver.id,
             "name": f"{driver.first_name} {driver.last_name}",
             "employee_id": driver.employee_id,
+            "phone": driver.phone,
+            "license_number": driver.license_number,
+            "license_expiry": driver.license_expiry.isoformat() if driver.license_expiry else None,
+            "experience_years": driver.experience_years,
+            "is_active": driver.is_active,
             "is_available": driver.is_available
         }
     }
@@ -149,7 +154,7 @@ async def start_trip(
     
     # Start the trip
     assignment.status = AssignmentStatus.IN_PROGRESS
-    assignment.actual_departure = datetime.utcnow()
+    assignment.started_at = datetime.utcnow()
     
     db.commit()
     db.refresh(assignment)
@@ -159,7 +164,7 @@ async def start_trip(
     return {
         "message": "Trip started successfully",
         "assignment_id": assignment_id,
-        "started_at": assignment.actual_departure.isoformat()
+        "started_at": assignment.started_at.isoformat()
     }
 
 
@@ -203,7 +208,7 @@ async def complete_trip(
     
     # Complete the trip
     assignment.status = AssignmentStatus.COMPLETED
-    assignment.actual_arrival = datetime.utcnow()
+    assignment.completed_at = datetime.utcnow()
     
     # Update request status
     if assignment.request:
@@ -217,7 +222,7 @@ async def complete_trip(
     return {
         "message": "Trip completed successfully",
         "assignment_id": assignment_id,
-        "completed_at": assignment.actual_arrival.isoformat()
+        "completed_at": assignment.completed_at.isoformat()
     }
 
 

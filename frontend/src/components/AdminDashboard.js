@@ -129,6 +129,10 @@ const AdminDashboard = () => {
         const data = await response.json();
         setAssignmentOptions(data);
         setShowApprovalModal(true);
+      } else {
+        const errorData = await response.json();
+        console.error('Failed to fetch assignment options:', errorData);
+        alert(errorData.detail || 'Failed to load assignment options. Please try again.');
       }
     } catch (error) {
       console.error('Error fetching assignment options:', error);
@@ -211,9 +215,6 @@ const AdminDashboard = () => {
             <div className="flex items-center space-x-4">
               <span className="text-gray-700">
                 Welcome, {user?.first_name} {user?.last_name}
-              </span>
-              <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
-                {user?.role === 'super_admin' ? 'Super Admin' : 'Transport Admin'}
               </span>
               <button
                 onClick={handleLogout}
@@ -409,14 +410,6 @@ const AdminDashboard = () => {
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
-                      {request.status === 'pending' && (
-                        <button
-                          onClick={() => openApprovalModal(request)}
-                          className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm"
-                        >
-                          Approve & Assign
-                        </button>
-                      )}
                       {(request.status === 'approved' || request.status === 'in_progress') && (
                         <button
                           onClick={() => openGPSTracker(request.id)}
@@ -436,66 +429,7 @@ const AdminDashboard = () => {
           </ul>
         </div>
 
-        {/* Quick Actions */}
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Quick Actions</h3>
-              <div className="space-y-3">
-                <a href="http://localhost:8000/docs" target="_blank" rel="noopener noreferrer" 
-                   className="block w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-center">
-                  View API Documentation
-                </a>
-                <button className="block w-full bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded">
-                  Manage Vehicles
-                </button>
-                <button className="block w-full bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded">
-                  Manage Drivers
-                </button>
-              </div>
-            </div>
-          </div>
 
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">System Status</h3>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">API Server</span>
-                  <span className="text-sm text-green-600">✅ Online</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Database</span>
-                  <span className="text-sm text-green-600">✅ Connected</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">ML Services</span>
-                  <span className="text-sm text-green-600">✅ Active</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">User Role</h3>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Role</span>
-                  <span className="text-sm font-medium text-blue-600">{user?.role}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Department</span>
-                  <span className="text-sm text-gray-900">{user?.department}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Employee ID</span>
-                  <span className="text-sm text-gray-900">{user?.employee_id}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
           </>
         )}
 
@@ -553,31 +487,31 @@ const AdminDashboard = () => {
                     className="w-full border border-gray-300 rounded-md px-3 py-2"
                   >
                     <option value="">Choose a vehicle...</option>
-                    {assignmentOptions.available_vehicles.map((vehicle) => (
+                    {assignmentOptions.available_vehicles?.map((vehicle) => (
                       <option key={vehicle.id} value={vehicle.id}>
                         {vehicle.make} {vehicle.model} ({vehicle.registration_number})
-                        {!vehicle.safety_validation.is_safe && ' ⚠️ SAFETY ISSUES'}
+                        {vehicle.safety_validation && !vehicle.safety_validation.is_safe && ' ⚠️ SAFETY ISSUES'}
                       </option>
                     ))}
                   </select>
 
-                  {selectedVehicle && assignmentOptions.available_vehicles.find(v => v.id == selectedVehicle)?.safety_validation && (
+                  {selectedVehicle && assignmentOptions.available_vehicles?.find(v => v.id == selectedVehicle)?.safety_validation && (
                     <div className="mt-2 text-sm">
-                      {assignmentOptions.available_vehicles.find(v => v.id == selectedVehicle).safety_validation.issues.length > 0 && (
+                      {assignmentOptions.available_vehicles?.find(v => v.id == selectedVehicle)?.safety_validation?.issues?.length > 0 && (
                         <div className="text-red-600">
                           <strong>Issues:</strong>
                           <ul className="list-disc list-inside">
-                            {assignmentOptions.available_vehicles.find(v => v.id == selectedVehicle).safety_validation.issues.map((issue, idx) => (
+                            {assignmentOptions.available_vehicles?.find(v => v.id == selectedVehicle)?.safety_validation?.issues?.map((issue, idx) => (
                               <li key={idx}>{issue}</li>
                             ))}
                           </ul>
                         </div>
                       )}
-                      {assignmentOptions.available_vehicles.find(v => v.id == selectedVehicle).safety_validation.warnings.length > 0 && (
+                      {assignmentOptions.available_vehicles?.find(v => v.id == selectedVehicle)?.safety_validation?.warnings?.length > 0 && (
                         <div className="text-yellow-600">
                           <strong>Warnings:</strong>
                           <ul className="list-disc list-inside">
-                            {assignmentOptions.available_vehicles.find(v => v.id == selectedVehicle).safety_validation.warnings.map((warning, idx) => (
+                            {assignmentOptions.available_vehicles?.find(v => v.id == selectedVehicle)?.safety_validation?.warnings?.map((warning, idx) => (
                               <li key={idx}>{warning}</li>
                             ))}
                           </ul>
@@ -598,31 +532,31 @@ const AdminDashboard = () => {
                     className="w-full border border-gray-300 rounded-md px-3 py-2"
                   >
                     <option value="">Choose a driver...</option>
-                    {assignmentOptions.available_drivers.map((driver) => (
+                    {assignmentOptions.available_drivers?.map((driver) => (
                       <option key={driver.id} value={driver.id}>
                         {driver.first_name} {driver.last_name} (Rating: {driver.rating || 'N/A'})
-                        {!driver.safety_validation.is_safe && ' ⚠️ SAFETY ISSUES'}
+                        {driver.safety_validation && !driver.safety_validation.is_safe && ' ⚠️ SAFETY ISSUES'}
                       </option>
                     ))}
                   </select>
 
-                  {selectedDriver && assignmentOptions.available_drivers.find(d => d.id == selectedDriver)?.safety_validation && (
+                  {selectedDriver && assignmentOptions.available_drivers?.find(d => d.id == selectedDriver)?.safety_validation && (
                     <div className="mt-2 text-sm">
-                      {assignmentOptions.available_drivers.find(d => d.id == selectedDriver).safety_validation.issues.length > 0 && (
+                      {assignmentOptions.available_drivers?.find(d => d.id == selectedDriver)?.safety_validation?.issues?.length > 0 && (
                         <div className="text-red-600">
                           <strong>Issues:</strong>
                           <ul className="list-disc list-inside">
-                            {assignmentOptions.available_drivers.find(d => d.id == selectedDriver).safety_validation.issues.map((issue, idx) => (
+                            {assignmentOptions.available_drivers?.find(d => d.id == selectedDriver)?.safety_validation?.issues?.map((issue, idx) => (
                               <li key={idx}>{issue}</li>
                             ))}
                           </ul>
                         </div>
                       )}
-                      {assignmentOptions.available_drivers.find(d => d.id == selectedDriver).safety_validation.warnings.length > 0 && (
+                      {assignmentOptions.available_drivers?.find(d => d.id == selectedDriver)?.safety_validation?.warnings?.length > 0 && (
                         <div className="text-yellow-600">
                           <strong>Warnings:</strong>
                           <ul className="list-disc list-inside">
-                            {assignmentOptions.available_drivers.find(d => d.id == selectedDriver).safety_validation.warnings.map((warning, idx) => (
+                            {assignmentOptions.available_drivers?.find(d => d.id == selectedDriver)?.safety_validation?.warnings?.map((warning, idx) => (
                               <li key={idx}>{warning}</li>
                             ))}
                           </ul>

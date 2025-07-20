@@ -21,7 +21,8 @@ const DriverManagement = () => {
   const fetchDrivers = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/v1/drivers/', {
+      // Only fetch active drivers by default
+      const response = await fetch('http://localhost:8000/api/v1/drivers/?is_active=true', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -99,7 +100,10 @@ const DriverManagement = () => {
   };
 
   const handleDeleteDriver = async (driverId) => {
-    if (!window.confirm('Are you sure you want to delete this driver?')) {
+    const driver = drivers.find(d => d.id === driverId);
+    const driverName = driver ? `${driver.first_name} ${driver.last_name}` : 'this driver';
+
+    if (!window.confirm(`Are you sure you want to delete ${driverName}? This action cannot be undone.`)) {
       return;
     }
 
@@ -114,8 +118,18 @@ const DriverManagement = () => {
       });
 
       if (response.ok) {
+        const result = await response.json();
+
+        // Remove driver from the list regardless of soft or hard delete
         setDrivers(drivers.filter(d => d.id !== driverId));
         setError('');
+
+        // Show success message with appropriate feedback
+        const deleteType = result.type === 'soft_delete' ?
+          'Driver deactivated successfully (historical data preserved)' :
+          'Driver deleted successfully';
+
+        alert(deleteType);
       } else {
         const errorData = await response.json();
         setError(errorData.detail || 'Failed to delete driver');
