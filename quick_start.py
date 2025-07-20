@@ -1,53 +1,58 @@
 #!/usr/bin/env python3
 """
-HAL Transport Management System - Quick Start Script
-Run this script to quickly start the entire system and verify it's working.
+HAL SmartMove - Quick Start Script
+
+This script provides the fastest way to get HAL SmartMove up and running.
+It performs minimal setup and starts the system immediately.
+
+Usage:
+    python quick_start.py
 """
 
-import subprocess
-import sys
-import time
-import requests
 import os
+import sys
+import subprocess
+import time
+import platform
 from pathlib import Path
 
-def print_header(title):
-    print(f"\n{'='*60}")
-    print(f"🚀 {title}")
-    print(f"{'='*60}")
+def print_banner():
+    """Print quick start banner"""
+    print("\n" + "="*60)
+    print("🚀 HAL SmartMove - Quick Start")
+    print("   Getting you up and running in seconds!")
+    print("="*60)
+    print("⚡ Starting system components...\n")
 
-def print_success(message):
-    print(f"✅ {message}")
+def check_python():
+    """Quick Python version check"""
+    if sys.version_info < (3, 8):
+        print("❌ Python 3.8+ required. Current version:", sys.version)
+        return False
+    print(f"✅ Python {sys.version.split()[0]} - OK")
+    return True
 
-def print_error(message):
-    print(f"❌ {message}")
-
-def print_info(message):
-    print(f"ℹ️  {message}")
-
-def check_backend_running():
-    """Check if backend is running"""
+def check_node():
+    """Quick Node.js check"""
     try:
-        response = requests.get("http://localhost:8000/docs", timeout=5)
-        return response.status_code == 200
-    except:
+        result = subprocess.run(["node", "--version"], capture_output=True, text=True)
+        if result.returncode == 0:
+            print(f"✅ Node.js {result.stdout.strip()} - OK")
+            return True
+        else:
+            print("❌ Node.js not found")
+            return False
+    except FileNotFoundError:
+        print("❌ Node.js not found")
         return False
 
-def check_frontend_running():
-    """Check if frontend is running"""
-    try:
-        response = requests.get("http://localhost:3000", timeout=5)
-        return response.status_code == 200
-    except:
-        return False
+def quick_backend_setup():
+    """Quick backend setup"""
+    print("🔧 Setting up backend...")
 
-def start_backend():
-    """Start the backend server"""
-    print_header("STARTING BACKEND SERVER")
-    
-    backend_path = Path("backend")
-    if not backend_path.exists():
-        print_error("Backend directory not found!")
+    backend_dir = Path("backend")
+    if not backend_dir.exists():
+        print("❌ Backend directory not found")
         return False
     
     # Check if already running

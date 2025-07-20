@@ -1,4 +1,6 @@
-# 🚗 HAL Transport Management System
+# 🚀 HAL SmartMove Transport Management System
+
+*"Hassle-Free Transport at Your Fingertips. From booking to tracking, manage your travel needs with speed, clarity, and control."*
 
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.8+-green.svg)](https://python.org)
@@ -6,41 +8,77 @@
 [![React](https://img.shields.io/badge/React-18+-blue.svg)](https://reactjs.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-Latest-green.svg)](https://fastapi.tiangolo.com)
 
-## 🌟 Project Overview
+## 🎯 **Quick Start**
 
-A comprehensive, enterprise-grade web-based transport management system designed specifically for **Hindustan Aeronautics Limited (HAL)** to streamline employee transportation services. The system features real-time GPS tracking, intelligent vehicle assignment, route optimization, and advanced ML/AI capabilities for demand prediction and operational efficiency.
+### **Instant Setup (Recommended)**
+```bash
+# Clone the repository
+git clone <repository-url>
+cd hal-transport-system
 
-### 🎯 Key Highlights
-- **Real-time GPS tracking** with live vehicle monitoring
-- **ML/AI-powered** route optimization and demand prediction
-- **Role-based access control** (Admin, Driver, Employee)
-- **Professional dashboard** with comprehensive analytics
-- **Mobile-responsive design** with modern UI/UX
-- **Enterprise-grade security** with JWT authentication
+# Run the application (one command!)
+python run_app.py
+```
 
-## 🛠️ Technical Stack
+### **Alternative Quick Start**
+```bash
+# For more detailed setup and monitoring
+python start_system.py
 
-### Frontend
-- **Framework**: React.js 18+ with JavaScript
-- **Styling**: Tailwind CSS for modern, responsive design
-- **Maps**: Leaflet with React-Leaflet for GPS tracking
-- **Charts**: Chart.js for analytics and reporting
-- **HTTP Client**: Axios for API communication
-- **Routing**: React Router DOM for navigation
+# For health checks only
+python health_check.py
+```
 
-### Backend
-- **Framework**: FastAPI (Python 3.8+)
-- **Authentication**: JWT with bcrypt password hashing
-- **Database ORM**: SQLAlchemy with MySQL
-- **API Documentation**: Auto-generated with Swagger/OpenAPI
-- **Background Tasks**: Celery with Redis
-- **ML/AI**: scikit-learn, pandas, numpy for predictive analytics
+## 🌐 **Access the Application**
 
-### Database & Infrastructure
-- **Primary Database**: MySQL 5.7+
-- **Caching**: Redis for session management
-- **File Storage**: Local file system with upload management
-- **Deployment**: Production-ready with Nginx and Gunicorn
+Once started, access HAL SmartMove at:
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:8000
+- **API Documentation**: http://localhost:8000/docs
+
+## 🔑 **Login Credentials**
+
+| Role | Employee ID | Password | Access Level |
+|------|-------------|----------|--------------|
+| **Admin** | `HAL001` | `admin123` | Full system control |
+| **Employee** | `HAL003` | `employee123` | Request transport |
+| **Transport** | `HAL002` | `transport123` | Manage trips |
+
+## ✨ **Key Features**
+
+### **For Administrators**
+- 📊 **Dashboard Overview**: System statistics and real-time monitoring
+- 👥 **User Management**: Create, edit, and manage system users
+- 🚗 **Vehicle Management**: Fleet management with maintenance tracking
+- 👨‍✈️ **Driver Management**: Driver registration and license tracking
+- 📋 **Request Management**: Approve and assign transport requests
+- 🛰️ **GPS Tracking**: Real-time trip monitoring and tracking
+
+### **For Employees**
+- 📝 **Request Transport**: Submit transport requests with details
+- 📱 **Track Requests**: Monitor request status and assignments
+- 📊 **Request History**: View past transport requests
+- 🔔 **Notifications**: Real-time updates on request status
+
+### **For Transport Managers**
+- 🚛 **Trip Management**: Coordinate and manage active trips
+- 📍 **Route Planning**: Optimize routes for efficiency
+- 👨‍✈️ **Driver Coordination**: Communicate with drivers
+- 📈 **Performance Metrics**: Track operational efficiency
+
+## 🛠️ **Technology Stack**
+
+### **Frontend**
+- **Framework**: React 18.x + Tailwind CSS
+- **Routing**: React Router v6
+- **HTTP Client**: Fetch API
+- **State Management**: React Hooks + Context
+
+### **Backend**
+- **Framework**: FastAPI + SQLAlchemy
+- **Authentication**: JWT with bcrypt
+- **Database**: SQLite (dev) / PostgreSQL (prod)
+- **Server**: Uvicorn (ASGI)
 
 ## 🏗️ System Architecture
 
@@ -74,42 +112,54 @@ A comprehensive, enterprise-grade web-based transport management system designed
                           └─────────────────────┘
 ```
 
-## ✨ Core Features
+## 🛠️ **Development**
 
-### 🏠 Landing Page
-- **Professional HAL Branding**: Corporate identity with aerospace theme
-- **Company Showcase**: About HAL section highlighting aerospace achievements
-- **Interactive Gallery**: Aircraft, facilities, and operations showcase
-- **Portal Navigation**: Seamless access to employee and admin interfaces
+### **Prerequisites**
+- **Python 3.8+** (Backend)
+- **Node.js 16+** (Frontend)
+- **npm 8+** (Package manager)
 
-### 👥 Employee Module
-- **Secure Authentication**: JWT-based login with role-based access
-- **Smart Request Form**: Origin, destination, date/time, purpose, passenger count
-- **Real-time Tracking**: Live status updates (pending/approved/rejected)
-- **Request Management**: Modification and cancellation capabilities
-- **Personal Analytics**: Individual request history and usage patterns
-- **Mobile Responsive**: Optimized for mobile and tablet devices
+### **Development Setup**
+```bash
+# Backend setup
+cd backend
+python -m venv venv
+venv\Scripts\activate  # Windows
+# source venv/bin/activate  # macOS/Linux
+pip install -r requirements.txt
+python main.py
 
-### 🔧 Admin Module
-- **Executive Dashboard**: Real-time metrics and KPI monitoring
-- **Request Management**: Comprehensive approval workflow
-- **Fleet Management**: Vehicle and driver assignment optimization
-- **Resource Planning**: Fleet availability and utilization tracking
-- **Advanced Analytics**: Detailed reporting and business intelligence
-- **Schedule Management**: Recurring trips and route planning
+# Frontend setup (new terminal)
+cd frontend
+npm install
+npm start
+```
 
-### 🚗 Driver Module
-- **Driver Dashboard**: Trip assignments and schedule management
-- **GPS Integration**: Real-time location tracking and navigation
-- **Trip Management**: Start/end trip functionality with status updates
-- **Vehicle Maintenance**: Maintenance alerts and reporting
-- **Performance Metrics**: Driver analytics and feedback system
+### **Available Scripts**
 
-### 🤖 ML/AI Features
-- **Intelligent Assignment**: AI-powered vehicle allocation based on historical patterns
-- **Route Optimization**: Machine learning algorithms for traffic-aware routing
-- **Demand Prediction**: Predictive analytics for resource planning
-- **Smart Scheduling**: Automated scheduling for recurring and optimal trips
+| Script | Purpose | Usage |
+|--------|---------|-------|
+| `run_app.py` | Simple app runner | `python run_app.py` |
+| `start_system.py` | Full system startup | `python start_system.py` |
+| `health_check.py` | System health check | `python health_check.py` |
+| `quick_start.py` | Legacy quick start | `python quick_start.py` |
+
+## 🔧 **Recent Updates**
+
+### **✅ Driver Deletion Fix (Latest)**
+- **Issue**: Driver deletion functionality was not working
+- **Solution**: Implemented smart deletion with data integrity protection
+- **Result**: Drivers can now be properly deleted with safety checks
+
+### **✅ Dashboard Streamlining**
+- **Issue**: "Approve & Assign" buttons cluttering dashboard
+- **Solution**: Moved approval actions to dedicated management tabs
+- **Result**: Cleaner dashboard focused on monitoring
+
+### **✅ Error Handling Improvements**
+- **Issue**: Runtime errors during approval operations
+- **Solution**: Added proper null checks and error handling
+- **Result**: Stable operation without crashes
 - **Performance Analytics**: Advanced insights and operational intelligence
 - **Predictive Maintenance**: Proactive vehicle maintenance alerts
 
