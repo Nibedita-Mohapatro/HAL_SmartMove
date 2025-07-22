@@ -4,8 +4,8 @@ from sqlalchemy import and_, func
 from typing import Optional
 from datetime import date, datetime, timedelta
 from app.database import get_db
-from app.auth import get_admin_user, get_current_active_user
-from app.models.user import User
+from app.auth import get_admin_user, get_current_active_user, get_password_hash
+from app.models.user import User, UserRole
 from app.models.driver import Driver
 from app.models.vehicle_assignment import VehicleAssignment, AssignmentStatus
 from app.models.transport_request import TransportRequest
@@ -25,6 +25,9 @@ class DriverCreate(BaseModel):
     first_name: str
     last_name: str
     experience_years: int = 0
+    email: Optional[str] = None
+    password: Optional[str] = None
+    create_user_account: bool = True
 
     @validator('license_expiry')
     def validate_license_expiry(cls, v):
@@ -36,6 +39,20 @@ class DriverCreate(BaseModel):
     def validate_experience(cls, v):
         if v < 0 or v > 50:
             raise ValueError('Experience years must be between 0 and 50')
+        return v
+
+    @validator('email')
+    def validate_email(cls, v, values):
+        if values.get('create_user_account', True) and not v:
+            raise ValueError('Email is required when creating user account')
+        return v
+
+    @validator('password')
+    def validate_password(cls, v, values):
+        if values.get('create_user_account', True) and not v:
+            raise ValueError('Password is required when creating user account')
+        if v and len(v) < 6:
+            raise ValueError('Password must be at least 6 characters long')
         return v
 
 
@@ -160,43 +177,113 @@ async def create_driver(
     db: Session = Depends(get_db)
 ):
     """
-    Create new driver (Admin only)
+    Create new driver with automatic user account provisioning (Admin only)
     """
-    # Check if employee_id already exists
+    # Check if employee_id already exists in drivers table
     existing_driver = db.query(Driver).filter(
         Driver.employee_id == driver_data.employee_id
     ).first()
-    
+
     if existing_driver:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Driver with this employee ID already exists"
         )
-    
+
     # Check if license number already exists
     existing_license = db.query(Driver).filter(
         Driver.license_number == driver_data.license_number
     ).first()
-    
+
     if existing_license:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Driver with this license number already exists"
         )
-    
-    # Create new driver
-    driver = Driver(**driver_data.dict())
+
+    # Check if user account already exists
+    existing_user = db.query(User).filter(
+        User.employee_id == driver_data.employee_id
+    ).first()
+
+    user_created = False
+    user_account = None
+
+    # Create user account if requested and doesn't exist
+    if driver_data.create_user_account and not existing_user:
+        if not driver_data.email or not driver_data.password:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email and password are required to create user account"
+            )
+
+        # Check if email already exists
+        existing_email = db.query(User).filter(User.email == driver_data.email).first()
+        if existing_email:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already exists"
+            )
+
+        # Create user account for driver
+        hashed_password = get_password_hash(driver_data.password)
+        user_account = User(
+            employee_id=driver_data.employee_id,
+            email=driver_data.email,
+            first_name=driver_data.first_name,
+            last_name=driver_data.last_name,
+            password_hash=hashed_password,
+            phone=driver_data.phone,
+            department="Transport",
+            designation="Driver",
+            role=UserRole.TRANSPORT,
+            is_active=True,
+            created_at=datetime.utcnow()
+        )
+
+        db.add(user_account)
+        user_created = True
+
+        logger.info(f"Admin {admin_user.employee_id} created user account for driver {driver_data.employee_id}")
+
+    # Create driver profile (exclude user account fields)
+    driver_dict = driver_data.dict(exclude={'email', 'password', 'create_user_account'})
+    driver = Driver(**driver_dict)
     db.add(driver)
-    db.commit()
-    db.refresh(driver)
-    
-    logger.info(f"Admin {admin_user.employee_id} created driver {driver.employee_id}")
-    
-    return {
-        "message": "Driver created successfully",
-        "id": driver.id,
-        "driver": driver.to_dict()
-    }
+
+    try:
+        db.commit()
+        db.refresh(driver)
+        if user_account:
+            db.refresh(user_account)
+
+        logger.info(f"Admin {admin_user.employee_id} created driver {driver.employee_id}")
+
+        response_data = {
+            "message": "Driver created successfully",
+            "id": driver.id,
+            "driver": driver.to_dict(),
+            "user_account_created": user_created
+        }
+
+        if user_created and user_account:
+            response_data["user_account"] = {
+                "id": user_account.id,
+                "employee_id": user_account.employee_id,
+                "email": user_account.email,
+                "role": user_account.role.value,
+                "login_instructions": f"Driver can now log in using Employee ID: {user_account.employee_id} and the provided password"
+            }
+
+        return response_data
+
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error creating driver: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to create driver and user account"
+        )
 
 
 @router.get("/{driver_id}")

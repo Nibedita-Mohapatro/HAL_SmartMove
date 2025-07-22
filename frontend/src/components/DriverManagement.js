@@ -60,7 +60,14 @@ const DriverManagement = () => {
         setDrivers([...drivers, result.driver]);
         setShowCreateForm(false);
         setError('');
-        return { success: true, message: 'Driver created successfully' };
+
+        // Show success message with user account info if created
+        let message = 'Driver created successfully';
+        if (result.user_account_created && result.user_account) {
+          message += `\n\nUser account created:\n- Employee ID: ${result.user_account.employee_id}\n- Email: ${result.user_account.email}\n- Role: ${result.user_account.role}\n\n${result.user_account.login_instructions}`;
+        }
+
+        return { success: true, message: message };
       } else {
         const errorData = await response.json();
         return { success: false, message: errorData.detail || 'Failed to create driver' };

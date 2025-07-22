@@ -8,13 +8,11 @@ const DriverForm = ({ driver, onSubmit, onCancel }) => {
     phone: '',
     email: '',
     license_number: '',
-    license_type: 'Light Vehicle',
     license_expiry: '',
-    date_of_birth: '',
-    address: '',
-    emergency_contact: '',
-    emergency_phone: '',
-    status: 'active'
+    experience_years: 0,
+    password: '',
+    confirm_password: '',
+    create_user_account: true
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -28,28 +26,24 @@ const DriverForm = ({ driver, onSubmit, onCancel }) => {
         phone: driver.phone || '',
         email: driver.email || '',
         license_number: driver.license_number || '',
-        license_type: driver.license_type || 'Light Vehicle',
         license_expiry: driver.license_expiry || '',
-        date_of_birth: driver.date_of_birth || '',
-        address: driver.address || '',
-        emergency_contact: driver.emergency_contact || '',
-        emergency_phone: driver.emergency_phone || '',
-        status: driver.status || 'active'
+        experience_years: driver.experience_years || 0,
+        password: '',
+        confirm_password: '',
+        create_user_account: false
       });
     }
   }, [driver]);
 
-  const licenseTypes = [
-    { value: 'Light Vehicle', label: 'Light Vehicle' },
-    { value: 'Heavy Vehicle', label: 'Heavy Vehicle' },
-    { value: 'Commercial', label: 'Commercial' },
-    { value: 'Transport', label: 'Transport' }
-  ];
-
-  const statusOptions = [
-    { value: 'active', label: 'Active' },
-    { value: 'inactive', label: 'Inactive' },
-    { value: 'on_leave', label: 'On Leave' }
+  const experienceOptions = [
+    { value: 0, label: 'No Experience' },
+    { value: 1, label: '1 Year' },
+    { value: 2, label: '2 Years' },
+    { value: 3, label: '3 Years' },
+    { value: 5, label: '5 Years' },
+    { value: 10, label: '10+ Years' },
+    { value: 15, label: '15+ Years' },
+    { value: 20, label: '20+ Years' }
   ];
 
   const handleChange = (e) => {
@@ -60,47 +54,53 @@ const DriverForm = ({ driver, onSubmit, onCancel }) => {
   };
 
   const validateForm = () => {
-    // Basic validation
     if (!formData.employee_id || !formData.first_name || !formData.last_name || 
-        !formData.phone || !formData.email || !formData.license_number || 
-        !formData.license_expiry || !formData.date_of_birth) {
+        !formData.phone || !formData.license_number || !formData.license_expiry) {
       setError('Please fill in all required fields');
       return false;
     }
 
-    // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) {
-      setError('Please enter a valid email address');
-      return false;
+    if (formData.create_user_account && !driver) {
+      if (!formData.email || !formData.password || !formData.confirm_password) {
+        setError('Email and password are required when creating user account');
+        return false;
+      }
+      
+      if (formData.password !== formData.confirm_password) {
+        setError('Passwords do not match');
+        return false;
+      }
+      
+      if (formData.password.length < 6) {
+        setError('Password must be at least 6 characters long');
+        return false;
+      }
     }
 
-    // Phone validation
-    const phoneRegex = /^\+91-\d{10}$/;
+    if (formData.email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email)) {
+        setError('Please enter a valid email address');
+        return false;
+      }
+    }
+
+    const phoneRegex = /^(\+91-)?[6-9]\d{9}$/;
     if (!phoneRegex.test(formData.phone)) {
-      setError('Please enter phone in format: +91-9876543210');
+      setError('Please enter a valid phone number');
       return false;
     }
 
-    // Date validation
     const today = new Date();
-    const birthDate = new Date(formData.date_of_birth);
     const licenseExpiry = new Date(formData.license_expiry);
-
-    if (birthDate >= today) {
-      setError('Date of birth must be in the past');
-      return false;
-    }
 
     if (licenseExpiry <= today) {
       setError('License expiry must be in the future');
       return false;
     }
 
-    // Age validation (minimum 18 years)
-    const age = Math.floor((today - birthDate) / (365.25 * 24 * 60 * 60 * 1000));
-    if (age < 18) {
-      setError('Driver must be at least 18 years old');
+    if (formData.experience_years < 0 || formData.experience_years > 50) {
+      setError('Experience years must be between 0 and 50');
       return false;
     }
 
@@ -118,7 +118,8 @@ const DriverForm = ({ driver, onSubmit, onCancel }) => {
     }
 
     try {
-      const result = await onSubmit(formData);
+      const { confirm_password, ...submitData } = formData;
+      const result = await onSubmit(submitData);
       if (result.success) {
         // Form will be closed by parent component
       } else {
@@ -153,7 +154,6 @@ const DriverForm = ({ driver, onSubmit, onCancel }) => {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Employee ID */}
           <div>
             <label htmlFor="employee_id" className="block text-sm font-medium text-gray-700 mb-1">
               Employee ID *
@@ -163,7 +163,7 @@ const DriverForm = ({ driver, onSubmit, onCancel }) => {
               name="employee_id"
               id="employee_id"
               required
-              disabled={!!driver} // Disable editing employee ID
+              disabled={!!driver}
               value={formData.employee_id}
               onChange={handleChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-hal-blue focus:border-transparent disabled:bg-gray-100"
@@ -171,7 +171,6 @@ const DriverForm = ({ driver, onSubmit, onCancel }) => {
             />
           </div>
 
-          {/* First Name */}
           <div>
             <label htmlFor="first_name" className="block text-sm font-medium text-gray-700 mb-1">
               First Name *
@@ -188,7 +187,6 @@ const DriverForm = ({ driver, onSubmit, onCancel }) => {
             />
           </div>
 
-          {/* Last Name */}
           <div>
             <label htmlFor="last_name" className="block text-sm font-medium text-gray-700 mb-1">
               Last Name *
@@ -205,7 +203,6 @@ const DriverForm = ({ driver, onSubmit, onCancel }) => {
             />
           </div>
 
-          {/* Phone */}
           <div>
             <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
               Phone *
@@ -222,24 +219,6 @@ const DriverForm = ({ driver, onSubmit, onCancel }) => {
             />
           </div>
 
-          {/* Email */}
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-              Email *
-            </label>
-            <input
-              type="email"
-              name="email"
-              id="email"
-              required
-              value={formData.email}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-hal-blue focus:border-transparent"
-              placeholder="driver@hal.co.in"
-            />
-          </div>
-
-          {/* License Number */}
           <div>
             <label htmlFor="license_number" className="block text-sm font-medium text-gray-700 mb-1">
               License Number *
@@ -252,30 +231,10 @@ const DriverForm = ({ driver, onSubmit, onCancel }) => {
               value={formData.license_number}
               onChange={handleChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-hal-blue focus:border-transparent"
-              placeholder="KA0120230001234"
+              placeholder="e.g., KA0120230001"
             />
           </div>
 
-          {/* License Type */}
-          <div>
-            <label htmlFor="license_type" className="block text-sm font-medium text-gray-700 mb-1">
-              License Type *
-            </label>
-            <select
-              name="license_type"
-              id="license_type"
-              required
-              value={formData.license_type}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-hal-blue focus:border-transparent"
-            >
-              {licenseTypes.map(type => (
-                <option key={type.value} value={type.value}>{type.label}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* License Expiry */}
           <div>
             <label htmlFor="license_expiry" className="block text-sm font-medium text-gray-700 mb-1">
               License Expiry *
@@ -291,105 +250,110 @@ const DriverForm = ({ driver, onSubmit, onCancel }) => {
             />
           </div>
 
-          {/* Date of Birth */}
           <div>
-            <label htmlFor="date_of_birth" className="block text-sm font-medium text-gray-700 mb-1">
-              Date of Birth *
-            </label>
-            <input
-              type="date"
-              name="date_of_birth"
-              id="date_of_birth"
-              required
-              value={formData.date_of_birth}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-hal-blue focus:border-transparent"
-            />
-          </div>
-
-          {/* Status */}
-          <div>
-            <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
-              Status
+            <label htmlFor="experience_years" className="block text-sm font-medium text-gray-700 mb-1">
+              Experience Years
             </label>
             <select
-              name="status"
-              id="status"
-              value={formData.status}
+              name="experience_years"
+              id="experience_years"
+              value={formData.experience_years}
               onChange={handleChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-hal-blue focus:border-transparent"
             >
-              {statusOptions.map(status => (
-                <option key={status.value} value={status.value}>{status.label}</option>
+              {experienceOptions.map(option => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
               ))}
             </select>
           </div>
         </div>
 
-        {/* Address */}
-        <div>
-          <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">
-            Address
-          </label>
-          <textarea
-            name="address"
-            id="address"
-            rows="2"
-            value={formData.address}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-hal-blue focus:border-transparent"
-            placeholder="Full address"
-          />
-        </div>
+        {!driver && (
+          <div className="border-t pt-4 mt-6">
+            <div className="flex items-center mb-4">
+              <input
+                type="checkbox"
+                name="create_user_account"
+                id="create_user_account"
+                checked={formData.create_user_account}
+                onChange={(e) => setFormData({...formData, create_user_account: e.target.checked})}
+                className="h-4 w-4 text-hal-blue focus:ring-hal-blue border-gray-300 rounded"
+              />
+              <label htmlFor="create_user_account" className="ml-2 block text-sm text-gray-900">
+                Create user account for driver login
+              </label>
+            </div>
 
-        {/* Emergency Contact */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label htmlFor="emergency_contact" className="block text-sm font-medium text-gray-700 mb-1">
-              Emergency Contact Name
-            </label>
-            <input
-              type="text"
-              name="emergency_contact"
-              id="emergency_contact"
-              value={formData.emergency_contact}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-hal-blue focus:border-transparent"
-              placeholder="Contact person name"
-            />
+            {formData.create_user_account && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                    Email *
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    id="email"
+                    required={formData.create_user_account}
+                    value={formData.email}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-hal-blue focus:border-transparent"
+                    placeholder="driver@hal.co.in"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                    Password *
+                  </label>
+                  <input
+                    type="password"
+                    name="password"
+                    id="password"
+                    required={formData.create_user_account}
+                    value={formData.password}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-hal-blue focus:border-transparent"
+                    placeholder="Minimum 6 characters"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="confirm_password" className="block text-sm font-medium text-gray-700 mb-1">
+                    Confirm Password *
+                  </label>
+                  <input
+                    type="password"
+                    name="confirm_password"
+                    id="confirm_password"
+                    required={formData.create_user_account}
+                    value={formData.confirm_password}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-hal-blue focus:border-transparent"
+                    placeholder="Re-enter password"
+                  />
+                </div>
+              </div>
+            )}
           </div>
+        )}
 
-          <div>
-            <label htmlFor="emergency_phone" className="block text-sm font-medium text-gray-700 mb-1">
-              Emergency Contact Phone
-            </label>
-            <input
-              type="tel"
-              name="emergency_phone"
-              id="emergency_phone"
-              value={formData.emergency_phone}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-hal-blue focus:border-transparent"
-              placeholder="+91-9876543210"
-            />
-          </div>
-        </div>
-
-        {/* Form Actions */}
-        <div className="flex justify-end space-x-3 pt-4">
+        <div className="flex justify-end space-x-3 pt-6 border-t">
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500"
+            className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-hal-blue"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={loading}
-            className="px-4 py-2 bg-hal-blue text-white rounded-md hover:bg-hal-navy focus:outline-none focus:ring-2 focus:ring-hal-blue disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-hal-blue hover:bg-hal-blue-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-hal-blue disabled:opacity-50"
           >
-            {loading ? (driver ? 'Updating...' : 'Creating...') : (driver ? 'Update Driver' : 'Create Driver')}
+            {loading ? 'Creating...' : (driver ? 'Update Driver' : 'Create Driver')}
           </button>
         </div>
       </form>
