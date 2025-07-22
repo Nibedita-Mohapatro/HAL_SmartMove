@@ -6,6 +6,7 @@ import VehicleManagement from './VehicleManagement';
 import DriverManagement from './DriverManagement';
 import AnalyticsDashboard from './AnalyticsDashboard';
 import GPSTracker from './GPSTracker';
+import ResourceAvailabilityCounters from './ResourceAvailabilityCounters';
 
 const AdminDashboard = () => {
   const [user, setUser] = useState(null);
@@ -17,6 +18,11 @@ const AdminDashboard = () => {
     available_vehicles: 0,
     total_drivers: 0,
     active_drivers: 0
+  });
+  const [resourceAvailability, setResourceAvailability] = useState({
+    available_drivers: 0,
+    available_vehicles: 0,
+    pending_requests: 0
   });
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -81,6 +87,11 @@ const AdminDashboard = () => {
           total_drivers: statsData.summary.available_drivers,
           active_drivers: statsData.summary.available_drivers
         });
+
+        // Update resource availability from dashboard data
+        if (statsData.resource_availability) {
+          setResourceAvailability(statsData.resource_availability);
+        }
       }
 
       // Fetch all requests for admin
@@ -108,6 +119,18 @@ const AdminDashboard = () => {
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('user');
     window.location.href = '/';
+  };
+
+  const handleResourceUpdate = (newResourceData) => {
+    setResourceAvailability(newResourceData);
+
+    // Also update the stats to reflect real-time changes
+    setStats(prevStats => ({
+      ...prevStats,
+      pending_requests: newResourceData.pending_requests,
+      available_vehicles: newResourceData.available_vehicles,
+      active_drivers: newResourceData.available_drivers
+    }));
   };
 
   const openApprovalModal = async (request) => {
@@ -301,6 +324,9 @@ const AdminDashboard = () => {
         {/* Tab Content */}
         {activeTab === 'dashboard' && (
           <>
+            {/* Real-time Resource Availability Counters */}
+            <ResourceAvailabilityCounters onResourceUpdate={handleResourceUpdate} />
+
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <div className="bg-white overflow-hidden shadow rounded-lg">

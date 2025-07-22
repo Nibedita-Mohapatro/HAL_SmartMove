@@ -61,6 +61,32 @@ async def get_dashboard_stats(
         and_(Driver.is_active == True, Driver.is_available == True)
     ).count()
 
+    # Real-time resource availability counts
+    # Available vehicles: active vehicles not currently assigned to active trips
+    assigned_vehicle_ids = db.query(VehicleAssignment.vehicle_id).filter(
+        VehicleAssignment.status.in_([AssignmentStatus.ASSIGNED, AssignmentStatus.IN_PROGRESS])
+    ).subquery()
+
+    available_vehicles = db.query(Vehicle).filter(
+        and_(
+            Vehicle.is_active == True,
+            ~Vehicle.id.in_(assigned_vehicle_ids)
+        )
+    ).count()
+
+    # Available drivers: active and available drivers not currently assigned to active trips
+    assigned_driver_ids = db.query(VehicleAssignment.driver_id).filter(
+        VehicleAssignment.status.in_([AssignmentStatus.ASSIGNED, AssignmentStatus.IN_PROGRESS])
+    ).subquery()
+
+    available_drivers_real = db.query(Driver).filter(
+        and_(
+            Driver.is_active == True,
+            Driver.is_available == True,
+            ~Driver.id.in_(assigned_driver_ids)
+        )
+    ).count()
+
     # Recent requests (last 7 days)
     from datetime import timedelta
     week_ago = today - timedelta(days=7)
@@ -110,10 +136,83 @@ async def get_dashboard_stats(
             "active_vehicles": active_vehicles,
             "available_drivers": available_drivers
         },
+        "resource_availability": {
+            "available_drivers": available_drivers_real,
+            "available_vehicles": available_vehicles,
+            "pending_requests": pending_requests
+        },
         "trends": {
             "requests_last_7_days": daily_requests,
             "popular_routes": routes_data
         }
+    }
+
+
+@router.get("/resource-availability")
+async def get_resource_availability(
+    admin_user: User = Depends(get_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get real-time resource availability counts for dashboard counters
+    """
+    # Available drivers: active and available drivers not currently assigned to active trips
+    assigned_driver_ids = db.query(VehicleAssignment.driver_id).filter(
+        VehicleAssignment.status.in_([AssignmentStatus.ASSIGNED, AssignmentStatus.IN_PROGRESS])
+    ).subquery()
+
+    available_drivers = db.query(Driver).filter(
+        and_(
+            Driver.is_active == True,
+            Driver.is_available == True,
+            ~Driver.id.in_(assigned_driver_ids)
+        )
+    ).count()
+
+    # Available vehicles: active vehicles not currently assigned to active trips
+    assigned_vehicle_ids = db.query(VehicleAssignment.vehicle_id).filter(
+        VehicleAssignment.status.in_([AssignmentStatus.ASSIGNED, AssignmentStatus.IN_PROGRESS])
+    ).subquery()
+
+    available_vehicles = db.query(Vehicle).filter(
+        and_(
+            Vehicle.is_active == True,
+            ~Vehicle.id.in_(assigned_vehicle_ids)
+        )
+    ).count()
+
+    # Pending requests: transport requests awaiting assignment
+    pending_requests = db.query(TransportRequest).filter(
+        TransportRequest.status == RequestStatus.PENDING
+    ).count()
+
+    # Calculate availability status for color coding
+    total_drivers = db.query(Driver).filter(Driver.is_active == True).count()
+    total_vehicles = db.query(Vehicle).filter(Vehicle.is_active == True).count()
+
+    driver_availability_percentage = (available_drivers / total_drivers * 100) if total_drivers > 0 else 0
+    vehicle_availability_percentage = (available_vehicles / total_vehicles * 100) if total_vehicles > 0 else 0
+
+    # Determine status levels for color coding
+    def get_availability_status(percentage):
+        if percentage >= 70:
+            return "good"  # Green
+        elif percentage >= 30:
+            return "warning"  # Orange
+        else:
+            return "critical"  # Red
+
+    return {
+        "available_drivers": available_drivers,
+        "available_vehicles": available_vehicles,
+        "pending_requests": pending_requests,
+        "total_drivers": total_drivers,
+        "total_vehicles": total_vehicles,
+        "driver_availability_percentage": round(driver_availability_percentage, 1),
+        "vehicle_availability_percentage": round(vehicle_availability_percentage, 1),
+        "driver_status": get_availability_status(driver_availability_percentage),
+        "vehicle_status": get_availability_status(vehicle_availability_percentage),
+        "pending_status": "critical" if pending_requests > 10 else "warning" if pending_requests > 5 else "good"
     }
 
 
@@ -323,6 +422,11 @@ async def approve_request_with_assignment(
         notes=approval_data.notes
     )
 
+    # Update driver availability to false when assigned
+    assigned_driver = db.query(Driver).filter(Driver.id == approval_data.driver_id).first()
+    if assigned_driver:
+        assigned_driver.is_available = False
+
     db.add(assignment)
     db.commit()
     db.refresh(assignment)
@@ -459,6 +563,14 @@ async def cancel_request_unified(
         )
 
     request.status = RequestStatus.CANCELLED
+
+    # Cancel vehicle assignment if exists and restore driver availability
+    assignment = db.query(VehicleAssignment).filter(VehicleAssignment.request_id == request_id).first()
+    if assignment:
+        assignment.status = AssignmentStatus.CANCELLED
+        # Restore driver availability when assignment is cancelled
+        if assignment.driver:
+            assignment.driver.is_available = True
 
     db.commit()
     logger.info(f"Admin {admin_user.employee_id} cancelled request {request_id}")
@@ -1126,6 +1238,11 @@ async def bulk_request_action(
                     notes=bulk_data.notes or "Bulk approval"
                 )
 
+                # Update driver availability to false when assigned
+                assigned_driver = db.query(Driver).filter(Driver.id == bulk_data.driver_id).first()
+                if assigned_driver:
+                    assigned_driver.is_available = False
+
                 db.add(assignment)
 
                 results.append({
@@ -1162,6 +1279,14 @@ async def bulk_request_action(
                     continue
 
                 request.status = RequestStatus.CANCELLED
+
+                # Cancel vehicle assignment if exists and restore driver availability
+                assignment = db.query(VehicleAssignment).filter(VehicleAssignment.request_id == request.id).first()
+                if assignment:
+                    assignment.status = AssignmentStatus.CANCELLED
+                    # Restore driver availability when assignment is cancelled
+                    if assignment.driver:
+                        assignment.driver.is_available = True
 
                 results.append({
                     "request_id": request.id,

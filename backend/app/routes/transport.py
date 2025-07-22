@@ -209,11 +209,15 @@ async def complete_trip(
     # Complete the trip
     assignment.status = AssignmentStatus.COMPLETED
     assignment.completed_at = datetime.utcnow()
-    
+
     # Update request status
     if assignment.request:
         assignment.request.status = RequestStatus.COMPLETED
-    
+
+    # Set driver back to available when trip is completed
+    if assignment.driver:
+        assignment.driver.is_available = True
+
     db.commit()
     db.refresh(assignment)
     

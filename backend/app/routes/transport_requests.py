@@ -253,10 +253,13 @@ async def cancel_request(
     # Cancel the request
     request.status = RequestStatus.CANCELLED
     
-    # Cancel vehicle assignment if exists
+    # Cancel vehicle assignment if exists and restore driver availability
     assignment = db.query(VehicleAssignment).filter(VehicleAssignment.request_id == request_id).first()
     if assignment:
         assignment.status = AssignmentStatus.CANCELLED
+        # Restore driver availability when assignment is cancelled
+        if assignment.driver:
+            assignment.driver.is_available = True
     
     db.commit()
     
